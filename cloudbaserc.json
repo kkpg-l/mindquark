@@ -1,0 +1,13 @@
+{
+  "envId": "kkpg-d2ga363tca9086e3e",
+  "functionRoot": "functions",
+  "functions": [
+    {
+      "name": "api",
+      "runtime": "Nodejs18.15",
+      "handler": "index.main",
+      "timeout": 60,
+      "memorySize": 512
+    }
+  ]
+}
