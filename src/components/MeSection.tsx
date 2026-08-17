@@ -15,6 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   getProfileConfig,
   saveProfileConfig,
+  subscribeProfileConfig,
   PRESET_USER_AVATARS,
   PRESET_FEMALE_COUNSELOR_AVATARS,
   PRESET_MALE_COUNSELOR_AVATARS,
@@ -34,7 +35,9 @@ export const MeSection: React.FC = () => {
   const [analysisResult, setAnalysisResult] = useState<string | null>(null);
 
   useEffect(() => {
-    setConfig(getProfileConfig());
+    return subscribeProfileConfig((newConfig) => {
+      setConfig(newConfig);
+    });
   }, []);
 
   const updateProfile = (newConfig: ProfileConfig) => {

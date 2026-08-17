@@ -207,21 +207,27 @@ export class IFlytekVoiceDictation {
 
     if (this.audioCtx) {
       try {
-        this.audioCtx.close();
+        if (this.audioCtx.state !== "closed") {
+          this.audioCtx.close().catch(() => {});
+        }
       } catch {}
       this.audioCtx = null;
     }
 
     if (this.mediaStream) {
-      this.mediaStream.getTracks().forEach((t) => t.stop());
+      try {
+        this.mediaStream.getTracks().forEach((t) => t.stop());
+      } catch {}
       this.mediaStream = null;
     }
 
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+    if (this.ws) {
       try {
-        // Send last frame to close gracefully
-        this.ws.send(JSON.stringify({ data: { status: 2, format: "audio/L16;rate=16000", encoding: "raw" } }));
-        this.ws.close();
+        if (this.ws.readyState === WebSocket.OPEN) {
+          // Send last frame to close gracefully
+          this.ws.send(JSON.stringify({ data: { status: 2, format: "audio/L16;rate=16000", encoding: "raw" } }));
+          this.ws.close();
+        }
       } catch {}
       this.ws = null;
     }

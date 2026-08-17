@@ -19,6 +19,7 @@ const DEFAULT_CONFIG: ProfileConfig = {
 };
 
 const STORAGE_KEY = "mindquark_profile_config_v1";
+export const PROFILE_UPDATE_EVENT = "mindquark_profile_updated";
 
 export function getProfileConfig(): ProfileConfig {
   if (typeof window === "undefined") return DEFAULT_CONFIG;
@@ -35,10 +36,39 @@ export function saveProfileConfig(config: ProfileConfig): void {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-    window.dispatchEvent(new Event("mindquark_profile_updated"));
+    window.dispatchEvent(
+      new CustomEvent<ProfileConfig>(PROFILE_UPDATE_EVENT, { detail: config })
+    );
   } catch (err) {
     console.warn("Failed to save profile config to localStorage:", err);
   }
+}
+
+export function subscribeProfileConfig(listener: (config: ProfileConfig) => void): () => void {
+  if (typeof window === "undefined") return () => {};
+
+  const handleCustomEvent = (e: Event) => {
+    const custom = e as CustomEvent<ProfileConfig>;
+    if (custom.detail) {
+      listener(custom.detail);
+    } else {
+      listener(getProfileConfig());
+    }
+  };
+
+  const handleStorageEvent = (e: StorageEvent) => {
+    if (e.key === STORAGE_KEY) {
+      listener(getProfileConfig());
+    }
+  };
+
+  window.addEventListener(PROFILE_UPDATE_EVENT, handleCustomEvent);
+  window.addEventListener("storage", handleStorageEvent);
+
+  return () => {
+    window.removeEventListener(PROFILE_UPDATE_EVENT, handleCustomEvent);
+    window.removeEventListener("storage", handleStorageEvent);
+  };
 }
 
 export const PRESET_USER_AVATARS = [

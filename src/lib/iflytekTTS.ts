@@ -1,34 +1,64 @@
 const API_BASE_URL = "https://kkpg-d2ga363tca9086e3e-1469579803.ap-shanghai.app.tcloudbase.com";
 
+export interface TTSState {
+  isPlaying: boolean;
+  currentId: string | null;
+}
+
 class TTSAudioPlayer {
   private currentAudio: HTMLAudioElement | null = null;
   private currentPlayingId: string | null = null;
-  private onStateChangeListeners: Array<(playingId: string | null) => void> = [];
+  private onStateChangeListeners: Array<(state: TTSState) => void> = [];
   private cache: Map<string, string> = new Map();
 
-  subscribe(listener: (playingId: string | null) => void) {
+  subscribe(listener: (state: TTSState) => void): () => void {
     this.onStateChangeListeners.push(listener);
+    // Send immediate state snapshot
+    listener({
+      isPlaying: Boolean(this.currentPlayingId),
+      currentId: this.currentPlayingId,
+    });
     return () => {
       this.onStateChangeListeners = this.onStateChangeListeners.filter((l) => l !== listener);
     };
   }
 
-  private notify() {
-    this.onStateChangeListeners.forEach((l) => l(this.currentPlayingId));
+  private notify(): void {
+    const state: TTSState = {
+      isPlaying: Boolean(this.currentPlayingId),
+      currentId: this.currentPlayingId,
+    };
+    this.onStateChangeListeners.forEach((listener) => {
+      try {
+        listener(state);
+      } catch (e) {
+        console.warn("TTS listener error:", e);
+      }
+    });
   }
 
   getCurrentPlayingId(): string | null {
     return this.currentPlayingId;
   }
 
-  stop() {
+  stop(): void {
     if (this.currentAudio) {
       try {
         this.currentAudio.pause();
         this.currentAudio.currentTime = 0;
+        this.currentAudio.onended = null;
+        this.currentAudio.onerror = null;
+        this.currentAudio.src = "";
       } catch {}
       this.currentAudio = null;
     }
+
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      try {
+        window.speechSynthesis.cancel();
+      } catch {}
+    }
+
     this.currentPlayingId = null;
     this.notify();
   }

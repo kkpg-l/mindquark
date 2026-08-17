@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Sparkles, MessageCircleHeart, HeartPulse, Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { getProfileConfig, type ProfileConfig } from "@/lib/profileStore";
+import { getProfileConfig, subscribeProfileConfig, type ProfileConfig } from "@/lib/profileStore";
 
 export type NavTab = "hero" | "chat" | "mood" | "me";
 
@@ -22,9 +22,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [profile, setProfile] = useState<ProfileConfig>(getProfileConfig());
 
   useEffect(() => {
-    const handleUpdate = () => setProfile(getProfileConfig());
-    window.addEventListener("mindquark_profile_updated", handleUpdate);
-    return () => window.removeEventListener("mindquark_profile_updated", handleUpdate);
+    return subscribeProfileConfig((newConfig) => {
+      setProfile(newConfig);
+    });
   }, []);
 
   return (

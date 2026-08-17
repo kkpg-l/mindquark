@@ -94,7 +94,7 @@ function callPrimaryModel(messages, maxTokens = 600) {
         "X-Title": "MindQuark Sanctuary",
         "Content-Length": Buffer.byteLength(postData),
       },
-      timeout: 18000,
+      timeout: 11000,
     };
 
     const req = https.request(options, (res) => {
@@ -145,7 +145,7 @@ function callBackupModel(messages, maxTokens = 600) {
         Authorization: `Bearer ${BACKUP_API_KEY}`,
         "Content-Length": Buffer.byteLength(postData),
       },
-      timeout: 18000,
+      timeout: 11000,
     };
 
     const req = https.request(options, (res) => {

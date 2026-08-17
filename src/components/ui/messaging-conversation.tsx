@@ -32,7 +32,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { sendChatMessage, type CounselorPersona } from "@/services/api";
-import { getProfileConfig, type ProfileConfig } from "@/lib/profileStore";
+import { getProfileConfig, subscribeProfileConfig, type ProfileConfig } from "@/lib/profileStore";
 import { ThinkingOrb } from "thinking-orbs";
 import { IFlytekVoiceDictation } from "@/lib/iflytekSpeech";
 import { ttsPlayer } from "@/lib/iflytekTTS";
@@ -249,11 +249,9 @@ export default function MessageConversation({
   const [playingMsgId, setPlayingMsgId] = useState<string | null>(null);
 
   useEffect(() => {
-    const handleUpdate = () => {
-      setProfile(getProfileConfig());
-    };
-    window.addEventListener("mindquark_profile_updated", handleUpdate);
-    return () => window.removeEventListener("mindquark_profile_updated", handleUpdate);
+    return subscribeProfileConfig((newProfile) => {
+      setProfile(newProfile);
+    });
   }, []);
 
   useEffect(() => {
