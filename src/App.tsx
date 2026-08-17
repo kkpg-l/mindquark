@@ -1,12 +1,13 @@
 import React, { useState, useRef } from "react";
 import gsap from "gsap";
 import { Navbar, type NavTab } from "@/components/Navbar";
+import { HeroSection } from "@/components/HeroSection";
 import MessageConversation from "@/components/ui/messaging-conversation";
 import { MoodTrackerSection } from "@/components/MoodTrackerSection";
 import { MeSection } from "@/components/MeSection";
 
 export default function App() {
-  const [currentTab, setCurrentTab] = useState<NavTab>("chat");
+  const [currentTab, setCurrentTab] = useState<NavTab>("hero");
   const [isDarkMode, setIsDarkMode] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -55,6 +56,10 @@ export default function App() {
     }
   };
 
+  const handleStartChatWithPrompt = (_prompt?: string) => {
+    handleTabSwitch("chat");
+  };
+
   return (
     <div
       className={`min-h-screen relative flex flex-col selection:bg-primary/20 selection:text-primary transition-colors ${
@@ -80,6 +85,13 @@ export default function App() {
 
       {/* Main Content Area animated with GSAP */}
       <main className="flex-1 w-full relative z-10" ref={contentRef}>
+        {currentTab === "hero" && (
+          <HeroSection
+            onStartChat={handleStartChatWithPrompt}
+            onNavigate={handleTabSwitch}
+          />
+        )}
+
         {currentTab === "chat" && (
           <div className="container mx-auto max-w-5xl px-4 py-4 md:py-6">
             <MessageConversation />
