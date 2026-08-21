@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +18,7 @@ import { ttsPlayer } from "@/lib/iflytekTTS";
 export const MoodTrackerSection: React.FC<{
   onStartChatWithMood?: (moodPrompt: string) => void;
 }> = ({ onStartChatWithMood }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
   const [selectedMood, setSelectedMood] = useState<string>("🌿 Calm & Centered");
   const [energyLevel, setEnergyLevel] = useState<number>(3);
   const [valenceLevel, setValenceLevel] = useState<number>(4);
@@ -27,6 +30,43 @@ export const MoodTrackerSection: React.FC<{
   const [distortionType, setDistortionType] = useState("all-or-nothing");
   const [reframedThought, setReframedThought] = useState("");
   const [isReframing, setIsReframing] = useState(false);
+
+  // GSAP Smooth Sanctuary Entrance
+  useGSAP(
+    () => {
+      const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
+
+      tl.from(".mood-header-wrap", {
+        y: -15,
+        autoAlpha: 0,
+        duration: 0.6,
+      })
+        .from(
+          ".mood-main-card",
+          {
+            y: 28,
+            autoAlpha: 0,
+            scale: 0.98,
+            stagger: 0.12,
+            duration: 0.65,
+          },
+          "-=0.3"
+        )
+        .from(
+          ".mood-item-stagger",
+          {
+            y: 10,
+            autoAlpha: 0,
+            scale: 0.96,
+            stagger: 0.03,
+            duration: 0.4,
+            ease: "power2.out",
+          },
+          "-=0.2"
+        );
+    },
+    { scope: containerRef }
+  );
 
   const moodOptions = [
     { label: "😊 Joyful & Grateful", emoji: "😊", color: "border-amber-400 bg-amber-500/10 text-amber-600" },
@@ -57,9 +97,9 @@ export const MoodTrackerSection: React.FC<{
   };
 
   return (
-    <div className="container mx-auto max-w-5xl px-4 sm:px-6 py-6 space-y-8 animate-in fade-in-50 duration-300">
+    <div ref={containerRef} className="container mx-auto max-w-5xl px-4 sm:px-6 py-6 space-y-8 select-none">
       {/* Title Header */}
-      <div className="text-center max-w-xl mx-auto">
+      <div className="mood-header-wrap text-center max-w-xl mx-auto">
         <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 px-3.5 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300 mb-2">
           <HeartPulse className="size-3.5 text-rose-500" />
           <span>Daily Mood Radar & CBT Cognitive Toolkit</span>
@@ -74,7 +114,7 @@ export const MoodTrackerSection: React.FC<{
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         {/* Module 1: Daily Mood Check-in (7 cols) */}
-        <Card className="md:col-span-7 rounded-3xl p-6 border border-emerald-500/20 bg-card/85 dark:bg-card/70 shadow-md shadow-emerald-500/5 backdrop-blur-md">
+        <Card className="mood-main-card md:col-span-7 rounded-3xl p-6 border border-emerald-500/20 bg-card/85 dark:bg-card/70 shadow-md shadow-emerald-500/5 backdrop-blur-md">
           <CardHeader className="p-0 mb-5 flex flex-row items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="size-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
@@ -101,7 +141,7 @@ export const MoodTrackerSection: React.FC<{
                   <button
                     key={opt.label}
                     onClick={() => setSelectedMood(opt.label)}
-                    className={`flex items-center gap-2 rounded-xl border p-2.5 text-xs font-medium transition-all ${
+                    className={`mood-item-stagger flex items-center gap-2 rounded-xl border p-2.5 text-xs font-medium transition-all cursor-pointer ${
                       selectedMood === opt.label
                         ? `${opt.color} ring-2 ring-primary/40 font-semibold shadow-xs`
                         : "border-border/70 hover:bg-accent text-foreground/80"
@@ -202,7 +242,7 @@ export const MoodTrackerSection: React.FC<{
         {/* Module 2: CBT Cognitive Reframer & Grounding (5 cols) */}
         <div className="md:col-span-5 space-y-6">
           {/* CBT Reframer */}
-          <Card className="rounded-3xl p-5 border border-emerald-500/20 bg-card/85 dark:bg-card/70 shadow-md shadow-emerald-500/5 backdrop-blur-md">
+          <Card className="mood-main-card rounded-3xl p-5 border border-emerald-500/20 bg-card/85 dark:bg-card/70 shadow-md shadow-emerald-500/5 backdrop-blur-md">
             <div className="flex items-center gap-2 mb-3">
               <div className="size-8 rounded-xl bg-purple-500/10 text-purple-600 flex items-center justify-center">
                 <BrainCircuit className="size-4.5" />

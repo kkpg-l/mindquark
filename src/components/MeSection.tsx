@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
 import {
   User,
   Sparkles,
@@ -25,7 +27,67 @@ import { analyzeDialogue } from "@/services/api";
 import { ThinkingOrb } from "thinking-orbs";
 import { AvatarUploader } from "@/components/ui/avatar-uploader";
 
+interface CounselorEditorProps {
+  avatar: string;
+  avatarFallback: string;
+  title: string;
+  defaultVoice: string;
+  name: string;
+  presetAvatars: string[];
+  onNameChange: (name: string) => void;
+  onAvatarChange: (avatar: string) => void;
+}
+
+function CounselorEditor({
+  avatar,
+  avatarFallback,
+  title,
+  defaultVoice,
+  name,
+  presetAvatars,
+  onNameChange,
+  onAvatarChange,
+}: CounselorEditorProps) {
+  return (
+    <div className="p-4 rounded-2xl bg-muted/40 border border-border/60 space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <Avatar className="size-9 ring-1 ring-primary/30">
+            <AvatarImage src={avatar} />
+            <AvatarFallback>{avatarFallback}</AvatarFallback>
+          </Avatar>
+          <div>
+            <span className="font-semibold text-foreground block">{title}</span>
+            <span className="text-[11px] text-muted-foreground font-lato-light-italic">
+              Default Voice: {defaultVoice}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <label className="font-medium text-muted-foreground block mb-1">Counselor Name:</label>
+        <input
+          type="text"
+          value={name}
+          onChange={(event) => onNameChange(event.target.value)}
+          placeholder="Counselor Name"
+          className="w-full rounded-xl border border-input bg-background px-3 py-1.5 text-xs font-light"
+        />
+      </div>
+
+      <AvatarUploader
+        label="Select or Upload Avatar"
+        currentAvatar={avatar}
+        onAvatarChange={onAvatarChange}
+        presetAvatars={presetAvatars}
+      />
+    </div>
+  );
+}
+
 export const MeSection: React.FC = () => {
+  const containerRef = useRef<HTMLDivElement>(null);
   const [config, setConfig] = useState<ProfileConfig>(getProfileConfig());
   const [savedSuccess, setSavedSuccess] = useState(false);
 
@@ -40,13 +102,48 @@ export const MeSection: React.FC = () => {
     });
   }, []);
 
+  // GSAP Smooth Choreography
+  useGSAP(
+    () => {
+      const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
+
+      tl.from(".me-header-wrap", {
+        y: -14,
+        autoAlpha: 0,
+        duration: 0.6,
+      })
+        .from(
+          ".me-card-column",
+          {
+            y: 28,
+            autoAlpha: 0,
+            scale: 0.98,
+            stagger: 0.12,
+            duration: 0.65,
+          },
+          "-=0.3"
+        )
+        .from(
+          ".me-avatar-preset",
+          {
+            scale: 0.85,
+            autoAlpha: 0,
+            stagger: 0.02,
+            duration: 0.4,
+            ease: "back.out(1.5)",
+          },
+          "-=0.2"
+        );
+    },
+    { scope: containerRef }
+  );
+
   const updateProfile = (newConfig: ProfileConfig) => {
     setConfig(newConfig);
     saveProfileConfig(newConfig);
   };
 
   const handleSaveProfile = () => {
-    saveProfileConfig(config);
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 2000);
   };
@@ -70,9 +167,9 @@ export const MeSection: React.FC = () => {
 Agent: You should optimize your time management with the Pomodoro technique. Make a to-do list and stop procrastinating.`;
 
   return (
-    <div className="container mx-auto max-w-5xl px-4 sm:px-6 py-6 space-y-8 animate-in fade-in-50 duration-300">
+    <div ref={containerRef} className="container mx-auto max-w-5xl px-4 sm:px-6 py-6 space-y-8 select-none">
       {/* Title Header */}
-      <div className="text-center max-w-xl mx-auto">
+      <div className="me-header-wrap text-center max-w-xl mx-auto">
         <div className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 border border-emerald-500/25 px-3.5 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300 mb-2">
           <Avatar className="size-4.5 ring-1 ring-emerald-500/40">
             <AvatarImage src={config.userAvatar} />
@@ -90,7 +187,7 @@ Agent: You should optimize your time management with the Pomodoro technique. Mak
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         {/* Module 1: Profile & Identity Customization (6 cols) */}
-        <div className="md:col-span-6 space-y-6">
+        <div className="me-card-column md:col-span-6 space-y-6">
           {/* Your Profile Card */}
           <Card className="rounded-3xl p-6 border border-emerald-500/20 bg-card/85 dark:bg-card/70 shadow-md shadow-emerald-500/5 backdrop-blur-md">
             <CardHeader className="p-0 mb-4 flex flex-row items-center justify-between">
@@ -152,73 +249,27 @@ Agent: You should optimize your time management with the Pomodoro technique. Mak
             </CardHeader>
 
             <CardContent className="p-0 space-y-5 text-xs">
-              {/* Maya (Female Persona) */}
-              <div className="p-4 rounded-2xl bg-muted/40 border border-border/60 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <Avatar className="size-9 ring-1 ring-primary/30">
-                      <AvatarImage src={config.femaleCounselorAvatar} />
-                      <AvatarFallback>M</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <span className="font-semibold text-foreground block">🌸 Female Persona (Nurturing)</span>
-                      <span className="text-[11px] text-muted-foreground font-lato-light-italic">Default Voice: Catherine</span>
-                    </div>
-                  </div>
-                </div>
+              <CounselorEditor
+                avatar={config.femaleCounselorAvatar}
+                avatarFallback="M"
+                title="🌸 Female Persona (Nurturing)"
+                defaultVoice="Catherine"
+                name={config.femaleCounselorName}
+                presetAvatars={PRESET_FEMALE_COUNSELOR_AVATARS}
+                onNameChange={(name) => updateProfile({ ...config, femaleCounselorName: name })}
+                onAvatarChange={(avatar) => updateProfile({ ...config, femaleCounselorAvatar: avatar })}
+              />
 
-                <div>
-                  <label className="font-medium text-muted-foreground block mb-1">Counselor Name:</label>
-                  <input
-                    type="text"
-                    value={config.femaleCounselorName}
-                    onChange={(e) => updateProfile({ ...config, femaleCounselorName: e.target.value })}
-                    placeholder="Counselor Name"
-                    className="w-full rounded-xl border border-input bg-background px-3 py-1.5 text-xs font-light"
-                  />
-                </div>
-
-                <AvatarUploader
-                  label="Select or Upload Avatar"
-                  currentAvatar={config.femaleCounselorAvatar}
-                  onAvatarChange={(newAvatar) => updateProfile({ ...config, femaleCounselorAvatar: newAvatar })}
-                  presetAvatars={PRESET_FEMALE_COUNSELOR_AVATARS}
-                />
-              </div>
-
-              {/* Liam (Male Persona) */}
-              <div className="p-4 rounded-2xl bg-muted/40 border border-border/60 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <Avatar className="size-9 ring-1 ring-primary/30">
-                      <AvatarImage src={config.maleCounselorAvatar} />
-                      <AvatarFallback>L</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <span className="font-semibold text-foreground block">🌿 Male Persona (Grounded)</span>
-                      <span className="text-[11px] text-muted-foreground font-lato-light-italic">Default Voice: John</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="font-medium text-muted-foreground block mb-1">Counselor Name:</label>
-                  <input
-                    type="text"
-                    value={config.maleCounselorName}
-                    onChange={(e) => updateProfile({ ...config, maleCounselorName: e.target.value })}
-                    placeholder="Counselor Name"
-                    className="w-full rounded-xl border border-input bg-background px-3 py-1.5 text-xs font-light"
-                  />
-                </div>
-
-                <AvatarUploader
-                  label="Select or Upload Avatar"
-                  currentAvatar={config.maleCounselorAvatar}
-                  onAvatarChange={(newAvatar) => updateProfile({ ...config, maleCounselorAvatar: newAvatar })}
-                  presetAvatars={PRESET_MALE_COUNSELOR_AVATARS}
-                />
-              </div>
+              <CounselorEditor
+                avatar={config.maleCounselorAvatar}
+                avatarFallback="L"
+                title="🌿 Male Persona (Grounded)"
+                defaultVoice="John"
+                name={config.maleCounselorName}
+                presetAvatars={PRESET_MALE_COUNSELOR_AVATARS}
+                onNameChange={(name) => updateProfile({ ...config, maleCounselorName: name })}
+                onAvatarChange={(avatar) => updateProfile({ ...config, maleCounselorAvatar: avatar })}
+              />
 
               {/* Save Button */}
               <Button
@@ -242,7 +293,7 @@ Agent: You should optimize your time management with the Pomodoro technique. Mak
         </div>
 
         {/* Module 2: External Agent / Dialogue Psychological & CBT Analyzer (6 cols) */}
-        <div className="md:col-span-6 space-y-6">
+        <div className="me-card-column md:col-span-6 space-y-6">
           <Card className="rounded-3xl p-6 border border-emerald-500/20 bg-card/85 dark:bg-card/70 shadow-md shadow-emerald-500/5 backdrop-blur-md flex flex-col h-full">
             <CardHeader className="p-0 mb-4">
               <div className="flex items-center gap-2.5 mb-1">

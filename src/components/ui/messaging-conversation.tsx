@@ -19,6 +19,7 @@ import {
   MicOff,
   Volume2,
   VolumeX,
+  Wind,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -31,7 +32,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { sendChatMessage, type CounselorPersona } from "@/services/api";
+import {
+  sendChatMessage,
+  type ChatHistoryMessage,
+  type CounselorPersona,
+} from "@/services/api";
 import { getProfileConfig, subscribeProfileConfig, type ProfileConfig } from "@/lib/profileStore";
 import { ThinkingOrb } from "thinking-orbs";
 import { IFlytekVoiceDictation } from "@/lib/iflytekSpeech";
@@ -240,8 +245,10 @@ function MessageActions({
 
 export default function MessageConversation({
   className,
+  onNavigateToBreathe,
 }: {
   className?: string;
+  onNavigateToBreathe?: () => void;
 }) {
   const [profile, setProfile] = useState<ProfileConfig>(getProfileConfig());
   const [persona, setPersona] = useState<CounselorPersona>(profile.defaultPersona || "female");
@@ -301,19 +308,23 @@ I'm here to offer you a quiet, warm space without any judgment. Whatever is rest
 Take all the time you need. We can gently explore what you're experiencing step-by-step and help you find steady ground. How are you feeling right in this moment?`;
   };
 
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: "initial-welcome",
-      text: getGreetingText(persona),
-      sender: currentCounselor,
-      time: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
-      cbtTip: "Active Listening: Safe, confidential, and judgment-free space.",
-    },
-  ]);
+  const createWelcomeMessage = (
+    selectedPersona: CounselorPersona,
+    id = `welcome-${Date.now()}`
+  ): ChatMessage => ({
+    id,
+    text: getGreetingText(selectedPersona),
+    sender: getCounselorUser(selectedPersona),
+    time: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
+    cbtTip: "Active Listening: Safe, confidential, and judgment-free space.",
+  });
 
+  const [messages, setMessages] = useState<ChatMessage[]>(() => [
+    createWelcomeMessage(persona, "initial-welcome"),
+  ]);
   const [inputVal, setInputVal] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const [showCrisisAlert, setShowCrisisAlert] = useState(false);
+  const [crisisMessage, setCrisisMessage] = useState<string | null>(null);
   const [isRecordingVoice, setIsRecordingVoice] = useState(false);
   const [voiceLanguage, setVoiceLanguage] = useState<"en_us" | "zh_cn">("en_us");
   const dictationRef = useRef<IFlytekVoiceDictation | null>(null);
@@ -358,21 +369,7 @@ Take all the time you need. We can gently explore what you're experiencing step-
     if (newPersona === persona) return;
     ttsPlayer.stop();
     setPersona(newPersona);
-    const newCounselor = getCounselorUser(newPersona);
-    setMessages((prev) => {
-      if (prev.length <= 1) {
-        return [
-          {
-            id: `welcome-${newPersona}`,
-            text: getGreetingText(newPersona),
-            sender: newCounselor,
-            time: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
-            cbtTip: "Active Listening: Safe, confidential, and judgment-free space.",
-          },
-        ];
-      }
-      return prev;
-    });
+    setMessages((prev) => (prev.length <= 1 ? [createWelcomeMessage(newPersona)] : prev));
   };
 
   useEffect(() => {
@@ -408,9 +405,9 @@ Take all the time you need. We can gently explore what you're experiencing step-
     setIsTyping(true);
 
     try {
-      const historyPayload = messages.slice(-8).map((m) => ({
-        role: m.sender.id === currentUser.id ? ("user" as const) : ("assistant" as const),
-        content: m.text,
+      const historyPayload: ChatHistoryMessage[] = messages.slice(-8).map((message) => ({
+        role: message.sender.id === currentUser.id ? "user" : "assistant",
+        content: message.text,
       }));
 
       const replyData = await sendChatMessage(textToSend, historyPayload, persona);
@@ -428,10 +425,9 @@ Take all the time you need. We can gently explore what you're experiencing step-
       setMessages((prev) => [...prev, counselorMsg]);
 
       if (replyData.isCrisis) {
-        setShowCrisisAlert(true);
-      }
-
-      if (autoSpeak && replyData.reply) {
+        ttsPlayer.stop();
+        setCrisisMessage(replyData.reply);
+      } else if (autoSpeak && replyData.reply) {
         handlePlayVoice(counselorMsg.id, replyData.reply);
       }
     } catch (err) {
@@ -450,15 +446,8 @@ Take all the time you need. We can gently explore what you're experiencing step-
 
   const clearChat = () => {
     ttsPlayer.stop();
-    setMessages([
-      {
-        id: `welcome-${Date.now()}`,
-        text: getGreetingText(persona),
-        sender: currentCounselor,
-        time: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
-        cbtTip: "Active Listening: Safe, confidential, and judgment-free space.",
-      },
-    ]);
+    setCrisisMessage(null);
+    setMessages([createWelcomeMessage(persona)]);
   };
 
   const copyMessage = (text: string) => {
@@ -536,6 +525,18 @@ Take all the time you need. We can gently explore what you're experiencing step-
             </button>
           </div>
 
+          {onNavigateToBreathe && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onNavigateToBreathe}
+              className="hidden sm:inline-flex items-center gap-1.5 rounded-2xl border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20 text-xs h-8 px-3 transition-all cursor-pointer"
+            >
+              <Wind className="size-3.5 text-teal-500" />
+              <span>Breathe Sanctuary</span>
+            </Button>
+          )}
+
           <UserActionsMenu
             onClear={clearChat}
             autoSpeak={autoSpeak}
@@ -556,6 +557,29 @@ Take all the time you need. We can gently explore what you're experiencing step-
           <div className="mx-auto my-2 max-w-lg rounded-2xl bg-amber-500/8 dark:bg-amber-950/25 p-3 text-center text-xs text-amber-950/85 dark:text-amber-200/90 border border-amber-500/25 font-lato-light-italic backdrop-blur-xs shadow-2xs">
             🌿 <strong>Gentle Note</strong>: MindQuark provides supportive CBT guidance and emotional reflection. It is not a replacement for clinical psychiatric emergency care. If in crisis, call or text <strong>988 (USA/Canada)</strong>.
           </div>
+
+          {crisisMessage && (
+            <div
+              className="mx-auto my-3 flex max-w-lg items-start gap-3 rounded-2xl border border-rose-500/35 bg-rose-500/10 p-4 text-sm text-foreground shadow-sm"
+              role="alert"
+            >
+              <ShieldAlert className="mt-0.5 size-5 shrink-0 text-rose-600" />
+              <div className="space-y-2">
+                <p className="font-semibold">Your safety comes first.</p>
+                <p className="whitespace-pre-line text-xs leading-relaxed text-muted-foreground">
+                  {crisisMessage}
+                </p>
+                <a
+                  className="inline-flex text-xs font-semibold text-rose-700 underline underline-offset-2 dark:text-rose-300"
+                  href="https://findahelpline.com"
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  Find verified local crisis support
+                </a>
+              </div>
+            </div>
+          )}
 
           {messages.map((msg) => {
             const isMe = msg.sender.id === currentUser.id;
@@ -656,7 +680,7 @@ Take all the time you need. We can gently explore what you're experiencing step-
                   <AvatarFallback>{currentCounselor.name[0]}</AvatarFallback>
                 </Avatar>
                 <div className="flex items-center gap-3">
-                  <ThinkingOrb state="solving" size={48} speed={0.85} />
+                  <ThinkingOrb state="solving" size={64} speed={0.85} style={{ width: 48, height: 48 }} />
                   <div className="flex flex-col">
                     <span className="text-xs font-semibold text-foreground">
                       {currentCounselor.name} is reflecting mindfully...

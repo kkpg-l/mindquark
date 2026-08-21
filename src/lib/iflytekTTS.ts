@@ -6,10 +6,11 @@ export interface TTSState {
 }
 
 class TTSAudioPlayer {
+  private static readonly MAX_CACHE_ENTRIES = 24;
   private currentAudio: HTMLAudioElement | null = null;
   private currentPlayingId: string | null = null;
   private onStateChangeListeners: Array<(state: TTSState) => void> = [];
-  private cache: Map<string, string> = new Map();
+  private cache = new Map<string, string>();
 
   subscribe(listener: (state: TTSState) => void): () => void {
     this.onStateChangeListeners.push(listener);
@@ -39,6 +40,16 @@ class TTSAudioPlayer {
 
   getCurrentPlayingId(): string | null {
     return this.currentPlayingId;
+  }
+
+  private cacheAudio(cacheKey: string, audioUrl: string): void {
+    this.cache.delete(cacheKey);
+    this.cache.set(cacheKey, audioUrl);
+    while (this.cache.size > TTSAudioPlayer.MAX_CACHE_ENTRIES) {
+      const oldestKey = this.cache.keys().next().value;
+      if (!oldestKey) break;
+      this.cache.delete(oldestKey);
+    }
   }
 
   stop(): void {
@@ -95,7 +106,7 @@ class TTSAudioPlayer {
         if (!data.audioBase64) throw new Error("No audio returned");
 
         audioUrl = `data:audio/mp3;base64,${data.audioBase64}`;
-        this.cache.set(cacheKey, audioUrl);
+        this.cacheAudio(cacheKey, audioUrl);
       }
 
       // If user stopped while fetching

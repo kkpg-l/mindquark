@@ -1,9 +1,12 @@
-const API_BASE_URL = "https://kkpg-d2ga363tca9086e3e-1469579803.ap-shanghai.app.tcloudbase.com";
+const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL ||
+  "https://kkpg-d2ga363tca9086e3e-1469579803.ap-shanghai.app.tcloudbase.com"
+).replace(/\/$/, "");
 
 export interface SpeechRecognitionHandlers {
   onStart?: () => void;
   onResult?: (text: string, isFinal: boolean) => void;
-  onError?: (err: Error) => void;
+  onError?: (error: Error) => void;
   onEnd?: () => void;
 }
 
@@ -12,192 +15,170 @@ export class IFlytekVoiceDictation {
   private audioCtx: AudioContext | null = null;
   private mediaStream: MediaStream | null = null;
   private processor: ScriptProcessorNode | null = null;
+  private browserRecognition: any = null;
+  private handlers: SpeechRecognitionHandlers | null = null;
   private isRecording = false;
+  private didNotifyEnd = false;
   private fullText = "";
 
-  async start(handlers: SpeechRecognitionHandlers, lang: "en_us" | "zh_cn" = "en_us"): Promise<void> {
+  async start(
+    handlers: SpeechRecognitionHandlers,
+    language: "en_us" | "zh_cn" = "en_us"
+  ): Promise<void> {
     if (this.isRecording) {
       this.stop();
       return;
     }
 
+    this.handlers = handlers;
+    this.didNotifyEnd = false;
     this.fullText = "";
 
     try {
-      // 1. Get authenticated WebSocket URL from our CloudBase backend
-      const authRes = await fetch(`${API_BASE_URL}/api/iat-auth`);
-      if (!authRes.ok) throw new Error("Failed to authenticate voice recognition service.");
-      const { url, appId } = await authRes.json();
+      const authResponse = await fetch(`${API_BASE_URL}/api/iat-auth`);
+      if (!authResponse.ok) {
+        throw new Error("Failed to authenticate voice recognition service.");
+      }
 
-      // 2. Request microphone permission
+      const { url, appId } = await authResponse.json();
       this.mediaStream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          channelCount: 1,
-          sampleRate: 16000,
-        },
+        audio: { channelCount: 1, sampleRate: 16_000 },
       });
 
-      // 3. Connect to iFlytek WebSocket
       this.ws = new WebSocket(url);
       this.isRecording = true;
       handlers.onStart?.();
 
       this.ws.onopen = () => {
-        // Send initial configuration frame
-        const frame = {
-          common: {
-            app_id: appId,
-          },
-          business: {
-            language: lang,
-            domain: "iat",
-            accent: "mandarin",
-            vad_eos: 5000,
-            dwa: "wpgs",
-            pd: "health",
-          },
-          data: {
-            status: 0,
-            format: "audio/L16;rate=16000",
-            encoding: "raw",
-          },
-        };
-        this.ws?.send(JSON.stringify(frame));
-        this.setupAudioRecording(handlers);
+        this.ws?.send(
+          JSON.stringify({
+            common: { app_id: appId },
+            business: {
+              language,
+              domain: "iat",
+              accent: "mandarin",
+              vad_eos: 5_000,
+              dwa: "wpgs",
+              pd: "health",
+            },
+            data: { status: 0, format: "audio/L16;rate=16000", encoding: "raw" },
+          })
+        );
+        this.setupAudioRecording();
       };
 
-      this.ws.onmessage = (e) => {
+      this.ws.onmessage = (event) => {
         try {
-          const res = JSON.parse(e.data);
-          if (res.code !== 0) {
-            handlers.onError?.(new Error(`iFlytek Error (${res.code}): ${res.message}`));
-            this.stop();
+          const response = JSON.parse(event.data);
+          if (response.code !== 0) {
+            this.handlers?.onError?.(new Error(`iFlytek error (${response.code}): ${response.message}`));
+            this.fallbackToBrowserSpeech(language);
             return;
           }
 
-          if (res.data?.result?.ws) {
-            let chunkText = "";
-            for (const wsItem of res.data.result.ws) {
-              if (wsItem.cw?.[0]?.w) {
-                chunkText += wsItem.cw[0].w;
-              }
-            }
-            this.fullText += chunkText;
-            handlers.onResult?.(this.fullText, res.data.status === 2);
+          const words = response.data?.result?.ws ?? [];
+          const chunk = words
+            .map((item: { cw?: Array<{ w?: string }> }) => item.cw?.[0]?.w || "")
+            .join("");
+          if (chunk) {
+            this.fullText += chunk;
+            this.handlers?.onResult?.(this.fullText, response.data?.status === 2);
           }
 
-          if (res.data?.status === 2) {
+          if (response.data?.status === 2) {
             this.stop();
-            handlers.onEnd?.();
           }
-        } catch (err) {
-          console.warn("Error parsing IAT response:", err);
+        } catch (error) {
+          console.warn("Unable to parse voice recognition response:", error);
         }
       };
 
-      this.ws.onerror = (err) => {
-        console.warn("iFlytek WebSocket error, falling back to Web Speech API if needed:", err);
-        this.fallbackWebSpeech(handlers, lang);
+      this.ws.onerror = () => {
+        this.handlers?.onError?.(new Error("Voice recognition connection failed; trying browser fallback."));
+        this.fallbackToBrowserSpeech(language);
       };
 
       this.ws.onclose = () => {
-        this.stop();
-        handlers.onEnd?.();
+        if (this.isRecording && !this.browserRecognition) {
+          this.fallbackToBrowserSpeech(language);
+        }
       };
-    } catch (err: any) {
-      console.warn("Microphone / IAT initialization error:", err);
-      // Try Web Speech API fallback
-      this.fallbackWebSpeech(handlers, lang);
+    } catch (error) {
+      console.warn("Voice recognition initialization failed; trying browser fallback:", error);
+      this.handlers?.onError?.(error instanceof Error ? error : new Error("Voice recognition unavailable."));
+      this.fallbackToBrowserSpeech(language);
     }
   }
 
-  private setupAudioRecording(handlers: SpeechRecognitionHandlers) {
+  private setupAudioRecording(): void {
     if (!this.mediaStream) return;
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-    this.audioCtx = new AudioContextClass({ sampleRate: 16000 });
-    const source = this.audioCtx.createMediaStreamSource(this.mediaStream);
 
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    this.audioCtx = new AudioContextClass({ sampleRate: 16_000 });
+    const source = this.audioCtx.createMediaStreamSource(this.mediaStream);
     this.processor = this.audioCtx.createScriptProcessor(4096, 1, 1);
     source.connect(this.processor);
     this.processor.connect(this.audioCtx.destination);
 
-    this.processor.onaudioprocess = (e) => {
+    this.processor.onaudioprocess = (event) => {
       if (!this.isRecording || !this.ws || this.ws.readyState !== WebSocket.OPEN) return;
-      const input = e.inputBuffer.getChannelData(0);
-      const pcm16 = this.floatTo16BitPCM(input);
-      const base64Audio = this.bufferToBase64(pcm16);
 
-      const audioFrame = {
-        data: {
-          status: 1,
-          format: "audio/L16;rate=16000",
-          encoding: "raw",
-          audio: base64Audio,
-        },
-      };
-      this.ws.send(JSON.stringify(audioFrame));
+      const pcm16 = this.floatTo16BitPCM(event.inputBuffer.getChannelData(0));
+      this.ws.send(
+        JSON.stringify({
+          data: {
+            status: 1,
+            format: "audio/L16;rate=16000",
+            encoding: "raw",
+            audio: this.bufferToBase64(pcm16),
+          },
+        })
+      );
     };
   }
 
-  private floatTo16BitPCM(input: Float32Array): ArrayBuffer {
-    const output = new DataView(new ArrayBuffer(input.length * 2));
-    for (let i = 0; i < input.length; i++) {
-      let s = Math.max(-1, Math.min(1, input[i]));
-      output.setInt16(i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true);
-    }
-    return output.buffer;
-  }
+  private fallbackToBrowserSpeech(language: "en_us" | "zh_cn"): void {
+    this.releaseIatResources(false);
 
-  private bufferToBase64(buffer: ArrayBuffer): string {
-    let binary = "";
-    const bytes = new Uint8Array(buffer);
-    const len = bytes.byteLength;
-    for (let i = 0; i < len; i++) {
-      binary += String.fromCharCode(bytes[i]);
-    }
-    return window.btoa(binary);
-  }
-
-  // Graceful browser Web Speech fallback if microphone format or streaming is interrupted
-  private fallbackWebSpeech(handlers: SpeechRecognitionHandlers, lang: string) {
     const SpeechRecognitionClass = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognitionClass) {
-      handlers.onError?.(new Error("Voice recognition unavailable in this browser environment."));
-      handlers.onEnd?.();
+      this.isRecording = false;
+      this.handlers?.onError?.(new Error("Voice recognition is unavailable in this browser."));
+      this.notifyEnd();
       return;
     }
 
     try {
       const recognition = new SpeechRecognitionClass();
-      recognition.lang = lang === "zh_cn" ? "zh-CN" : "en-US";
+      this.browserRecognition = recognition;
+      this.isRecording = true;
+      recognition.lang = language === "zh_cn" ? "zh-CN" : "en-US";
       recognition.continuous = false;
       recognition.interimResults = true;
-
-      recognition.onstart = () => handlers.onStart?.();
-      recognition.onresult = (e: any) => {
-        let text = "";
-        for (let i = 0; i < e.results.length; i++) {
-          text += e.results[i][0].transcript;
-        }
-        handlers.onResult?.(text, true);
+      recognition.onstart = () => this.handlers?.onStart?.();
+      recognition.onresult = (event: any) => {
+        const text = Array.from(event.results as ArrayLike<any>)
+          .map((result: any) => result[0]?.transcript || "")
+          .join("");
+        this.handlers?.onResult?.(text, Boolean(event.results?.[event.results.length - 1]?.isFinal));
       };
-      recognition.onerror = (e: any) => {
-        handlers.onError?.(new Error(e.error || "Speech error"));
+      recognition.onerror = (event: any) => {
+        this.handlers?.onError?.(new Error(event.error || "Browser speech recognition failed."));
       };
       recognition.onend = () => {
-        this.stop();
-        handlers.onEnd?.();
+        this.browserRecognition = null;
+        this.isRecording = false;
+        this.notifyEnd();
       };
       recognition.start();
-    } catch (e: any) {
-      handlers.onError?.(e);
-      handlers.onEnd?.();
+    } catch (error) {
+      this.isRecording = false;
+      this.handlers?.onError?.(error instanceof Error ? error : new Error("Browser speech recognition failed."));
+      this.notifyEnd();
     }
   }
 
-  stop(): void {
-    this.isRecording = false;
-
+  private releaseIatResources(sendFinalFrame: boolean): void {
     if (this.processor) {
       try {
         this.processor.disconnect();
@@ -207,29 +188,72 @@ export class IFlytekVoiceDictation {
 
     if (this.audioCtx) {
       try {
-        if (this.audioCtx.state !== "closed") {
-          this.audioCtx.close().catch(() => {});
-        }
+        if (this.audioCtx.state !== "closed") this.audioCtx.close().catch(() => {});
       } catch {}
       this.audioCtx = null;
     }
 
     if (this.mediaStream) {
       try {
-        this.mediaStream.getTracks().forEach((t) => t.stop());
+        this.mediaStream.getTracks().forEach((track) => track.stop());
       } catch {}
       this.mediaStream = null;
     }
 
-    if (this.ws) {
+    const ws = this.ws;
+    this.ws = null;
+    if (ws) {
+      ws.onopen = null;
+      ws.onmessage = null;
+      ws.onerror = null;
+      ws.onclose = null;
       try {
-        if (this.ws.readyState === WebSocket.OPEN) {
-          // Send last frame to close gracefully
-          this.ws.send(JSON.stringify({ data: { status: 2, format: "audio/L16;rate=16000", encoding: "raw" } }));
-          this.ws.close();
+        if (sendFinalFrame && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ data: { status: 2, format: "audio/L16;rate=16000", encoding: "raw" } }));
         }
+        ws.close();
       } catch {}
-      this.ws = null;
     }
+  }
+
+  private notifyEnd(): void {
+    if (this.didNotifyEnd) return;
+    this.didNotifyEnd = true;
+    const handlers = this.handlers;
+    this.handlers = null;
+    handlers?.onEnd?.();
+  }
+
+  private floatTo16BitPCM(input: Float32Array): ArrayBuffer {
+    const output = new DataView(new ArrayBuffer(input.length * 2));
+    for (let index = 0; index < input.length; index += 1) {
+      const sample = Math.max(-1, Math.min(1, input[index]));
+      output.setInt16(index * 2, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+    }
+    return output.buffer;
+  }
+
+  private bufferToBase64(buffer: ArrayBuffer): string {
+    let binary = "";
+    const bytes = new Uint8Array(buffer);
+    for (let index = 0; index < bytes.byteLength; index += 1) {
+      binary += String.fromCharCode(bytes[index]);
+    }
+    return window.btoa(binary);
+  }
+
+  stop(): void {
+    const recognition = this.browserRecognition;
+    this.browserRecognition = null;
+    if (recognition) {
+      recognition.onend = null;
+      try {
+        recognition.stop();
+      } catch {}
+    }
+
+    this.releaseIatResources(true);
+    this.isRecording = false;
+    this.notifyEnd();
   }
 }

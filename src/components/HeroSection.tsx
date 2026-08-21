@@ -70,7 +70,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           <Button
             size="lg"
             onClick={() => onStartChat()}
-            className="rounded-full px-8 gap-2 text-base font-normal bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/25 hover:scale-105 transition-all"
+            className="rounded-full px-8 gap-2 text-base font-normal bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/25 hover:scale-105 transition-all cursor-pointer"
           >
             <MessageCircleHeart className="size-5" />
             <span>Begin Mindful Chat</span>
@@ -81,7 +81,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             variant="outline"
             size="lg"
             onClick={() => onNavigate("mood")}
-            className="rounded-full px-6 gap-2 text-base border-emerald-600/25 bg-background/80 hover:bg-emerald-500/10 text-foreground backdrop-blur-md font-light shadow-xs"
+            className="rounded-full px-6 gap-2 text-base border-emerald-600/25 bg-background/80 hover:bg-emerald-500/10 text-foreground backdrop-blur-md font-light shadow-xs cursor-pointer"
           >
             <HeartPulse className="size-5 text-rose-500" />
             <span>Explore Mood Radar</span>
@@ -98,7 +98,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               <button
                 key={idx}
                 onClick={() => onStartChat(item.prompt)}
-                className="rounded-full border border-emerald-600/20 bg-card/85 dark:bg-card/75 px-4 py-2 text-xs sm:text-sm text-foreground/90 shadow-xs hover:border-emerald-500 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-emerald-500/10 transition-all active:scale-95 font-light backdrop-blur-sm"
+                className="rounded-full border border-emerald-600/20 bg-card/85 dark:bg-card/75 px-4 py-2 text-xs sm:text-sm text-foreground/90 shadow-xs hover:border-emerald-500 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-emerald-500/10 transition-all active:scale-95 font-light backdrop-blur-sm cursor-pointer"
               >
                 {item.text}
               </button>

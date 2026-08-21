@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { Sparkles, MessageCircleHeart, HeartPulse, Moon, Sun } from "lucide-react";
+import { Sparkles, MessageCircleHeart, HeartPulse, Wind, Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getProfileConfig, subscribeProfileConfig, type ProfileConfig } from "@/lib/profileStore";
 
-export type NavTab = "hero" | "chat" | "mood" | "me";
+export type NavTab = "hero" | "chat" | "breathe" | "mood" | "me";
 
 interface NavbarProps {
   currentTab: NavTab;
@@ -76,6 +76,20 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <MessageCircleHeart className="size-3.5" />
             <span>Chat</span>
+          </Button>
+
+          <Button
+            variant={currentTab === "breathe" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => onTabChange("breathe")}
+            className={`rounded-full text-xs sm:text-sm h-8 sm:h-8.5 px-3.5 gap-1.5 transition-all ${
+              currentTab === "breathe"
+                ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shadow-emerald-600/20"
+                : "text-muted-foreground hover:text-foreground hover:bg-emerald-500/10"
+            }`}
+          >
+            <Wind className="size-3.5 text-teal-400" />
+            <span>Breathe</span>
           </Button>
 
           <Button

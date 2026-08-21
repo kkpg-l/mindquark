@@ -32,12 +32,13 @@ export function getProfileConfig(): ProfileConfig {
   }
 }
 
-export function saveProfileConfig(config: ProfileConfig): void {
+export function saveProfileConfig(config: Partial<ProfileConfig>): void {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+    const nextConfig: ProfileConfig = { ...getProfileConfig(), ...config };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(nextConfig));
     window.dispatchEvent(
-      new CustomEvent<ProfileConfig>(PROFILE_UPDATE_EVENT, { detail: config })
+      new CustomEvent<ProfileConfig>(PROFILE_UPDATE_EVENT, { detail: nextConfig })
     );
   } catch (err) {
     console.warn("Failed to save profile config to localStorage:", err);
