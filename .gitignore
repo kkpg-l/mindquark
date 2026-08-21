@@ -35,3 +35,6 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
+
+# Source archive (not needed in repo)
+mindquark-source.zip
