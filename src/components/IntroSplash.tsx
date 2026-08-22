@@ -1,130 +1,167 @@
 import React, { useRef, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
-import { Sparkles, Leaf } from "lucide-react";
 
 interface IntroSplashProps {
   onFinish?: () => void;
 }
 
+// SVG Bezier Liquid Wave Morphing Keyframes (Codrops Multi-Layered Wave)
+const PATH_FLAT_START = "M 0 0 L 100 0 L 100 100 Q 50 100 0 100 Z";
+const PATH_WAVE_CURVE1 = "M 0 0 L 100 0 L 100 0 Q 50 -40 0 0 Z";
+const PATH_WAVE_CURVE2 = "M 0 0 L 100 0 L 100 0 Q 50 -55 0 0 Z";
+const PATH_FLAT_END = "M 0 0 L 100 0 L 100 0 Q 50 0 0 0 Z";
+
 export const IntroSplash: React.FC<IntroSplashProps> = ({ onFinish }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const leafRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const subRef = useRef<HTMLParagraphElement>(null);
+  const dividerRef = useRef<HTMLDivElement>(null);
+
+  // Dual Liquid Wave Paths (Layer 1: Emerald Green, Layer 2: Pure White)
+  const whiteWaveRef = useRef<SVGPathElement>(null);
+  const greenWaveRef = useRef<SVGPathElement>(null);
   const [isRendered, setIsRendered] = useState(true);
 
   useGSAP(
     () => {
+      const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      if (prefersReduced) {
+        setIsRendered(false);
+        if (onFinish) onFinish();
+        return;
+      }
+
       const tl = gsap.timeline({
-        defaults: { ease: "power3.out" },
         onComplete: () => {
           setIsRendered(false);
           if (onFinish) onFinish();
         },
       });
 
-      // 1. Initial State Setup
-      gsap.set(".bloom-badge", { scale: 0, rotation: -25, autoAlpha: 0 });
-      gsap.set(".bloom-leaf-icon", { scale: 0, rotation: -40 });
-      gsap.set(".breeze-line", { scaleX: 0, autoAlpha: 0 });
-      gsap.set(".bloom-text-title", { y: 18, autoAlpha: 0 });
-      gsap.set(".bloom-text-sub", { y: 12, autoAlpha: 0 });
-      gsap.set(".bloom-sparkle", { scale: 0, autoAlpha: 0 });
+      // ── 1. Initial State Setup ──
+      gsap.set(containerRef.current, { autoAlpha: 1 });
+      gsap.set(whiteWaveRef.current, { attr: { d: PATH_FLAT_START } });
+      gsap.set(greenWaveRef.current, { attr: { d: PATH_FLAT_START } });
+      gsap.set(titleRef.current, {
+        y: 24,
+        letterSpacing: "0.18em",
+        autoAlpha: 0,
+        filter: "blur(8px)",
+      });
+      gsap.set(subRef.current, {
+        y: 12,
+        letterSpacing: "0.06em",
+        autoAlpha: 0,
+        filter: "blur(4px)",
+      });
+      gsap.set(dividerRef.current, {
+        scaleX: 0,
+        transformOrigin: "center center",
+        autoAlpha: 0,
+      });
+      gsap.set(".emerald-glow", {
+        scale: 0.75,
+        autoAlpha: 0,
+      });
 
-      // 2. Breeze Lines Sweep In
-      tl.to(".breeze-line", {
-        scaleX: 1,
-        autoAlpha: 0.7,
-        stagger: 0.08,
-        duration: 0.4,
+      // ── 2. Atmospheric White-Emerald Awakening ──
+      tl.to(".emerald-glow", {
+        scale: 1.25,
+        autoAlpha: 0.9,
+        duration: 0.45,
         ease: "power2.out",
       })
-        // 3. Leaf Badge Blooms with Elastic Spring Physics
         .to(
-          ".bloom-badge",
-          {
-            scale: 1,
-            rotation: 0,
-            autoAlpha: 1,
-            duration: 0.6,
-            ease: "back.out(2.4)",
-          },
-          "-=0.2"
-        )
-        .to(
-          ".bloom-leaf-icon",
-          {
-            scale: 1,
-            rotation: 0,
-            duration: 0.5,
-            ease: "back.out(2.8)",
-          },
-          "-=0.45"
-        )
-        // 4. Concentric Water Ripples Expand
-        .fromTo(
-          ".bloom-ripple-1",
-          { scale: 0.7, autoAlpha: 0.9 },
-          {
-            scale: 2.3,
-            autoAlpha: 0,
-            duration: 0.75,
-            ease: "power2.out",
-          },
-          "-=0.35"
-        )
-        .fromTo(
-          ".bloom-ripple-2",
-          { scale: 0.5, autoAlpha: 0.8 },
-          {
-            scale: 2.8,
-            autoAlpha: 0,
-            duration: 0.85,
-            ease: "power2.out",
-          },
-          "-=0.55"
-        )
-        // 5. Sparkles Pop Out
-        .to(
-          ".bloom-sparkle",
-          {
-            scale: 1,
-            autoAlpha: 1,
-            stagger: 0.06,
-            duration: 0.35,
-            ease: "back.out(2.5)",
-          },
-          "-=0.5"
-        )
-        // 6. Title and Subtitle Slide In
-        .to(
-          ".bloom-text-title",
+          titleRef.current,
           {
             y: 0,
+            letterSpacing: "-0.025em",
             autoAlpha: 1,
+            filter: "blur(0px)",
             duration: 0.45,
-            ease: "power3.out",
+            ease: "expo.out",
           },
-          "-=0.35"
+          "-=0.32"
         )
         .to(
-          ".bloom-text-sub",
+          subRef.current,
           {
             y: 0,
+            letterSpacing: "0.015em",
             autoAlpha: 1,
-            duration: 0.4,
-            ease: "power3.out",
+            filter: "blur(0px)",
+            duration: 0.38,
+            ease: "expo.out",
           },
-          "-=0.25"
+          "-=0.3"
         )
-        // 7. Curtain Elegantly Glides Upward (Wipe Reveal)
+        .to(
+          dividerRef.current,
+          {
+            scaleX: 1,
+            autoAlpha: 1,
+            duration: 0.35,
+            ease: "power2.inOut",
+          },
+          "-=0.28"
+        )
+
+        // ── 3. Text Fades Gently ──
+        .to(
+          contentRef.current,
+          {
+            y: -28,
+            autoAlpha: 0,
+            filter: "blur(6px)",
+            duration: 0.32,
+            ease: "power2.in",
+          },
+          "+=0.15"
+        )
+
+        // ── 4. Staggered Dual-Layer White ➔ Emerald Liquid Wave Exit ──
+        .to(
+          whiteWaveRef.current,
+          {
+            attr: { d: PATH_WAVE_CURVE1 },
+            duration: 0.42,
+            ease: "power2.in",
+          },
+          "-=0.22"
+        )
+        .to(whiteWaveRef.current, {
+          attr: { d: PATH_FLAT_END },
+          duration: 0.25,
+          ease: "power2.out",
+        })
+        .to(
+          greenWaveRef.current,
+          {
+            attr: { d: PATH_WAVE_CURVE2 },
+            duration: 0.45,
+            ease: "power2.in",
+          },
+          "-=0.52"
+        )
+        .to(
+          greenWaveRef.current,
+          {
+            attr: { d: PATH_FLAT_END },
+            duration: 0.28,
+            ease: "power2.out",
+          },
+          "-=0.12"
+        )
         .to(
           containerRef.current,
           {
-            yPercent: -100,
-            duration: 0.65,
-            ease: "power3.inOut",
+            autoAlpha: 0,
+            duration: 0.1,
           },
-          "+=0.35"
+          "-=0.08"
         );
     },
     { scope: containerRef }
@@ -135,9 +172,9 @@ export const IntroSplash: React.FC<IntroSplashProps> = ({ onFinish }) => {
   const handleSkip = () => {
     if (containerRef.current) {
       gsap.to(containerRef.current, {
-        yPercent: -100,
-        duration: 0.35,
-        ease: "power3.inOut",
+        autoAlpha: 0,
+        duration: 0.25,
+        ease: "power2.inOut",
         onComplete: () => {
           setIsRendered(false);
           if (onFinish) onFinish();
@@ -149,66 +186,82 @@ export const IntroSplash: React.FC<IntroSplashProps> = ({ onFinish }) => {
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white dark:bg-zinc-950 select-none overflow-hidden"
-      style={{ willChange: "transform" }}
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center select-none overflow-hidden"
+      style={{ willChange: "transform, opacity" }}
     >
-      {/* Background Soft Emerald & Mint Ambient Field */}
-      <div className="pointer-events-none absolute size-[520px] rounded-full bg-emerald-400/15 dark:bg-emerald-500/10 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-20 right-1/4 size-80 rounded-full bg-teal-400/10 blur-2xl" />
+      {/* Dual-Layered Liquid Wave SVG Curtain (White over Vibrant Emerald) */}
+      <svg
+        className="absolute inset-0 w-full h-full pointer-events-none"
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+      >
+        <defs>
+          <linearGradient id="emeraldWaveGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#047857" />
+            <stop offset="45%" stopColor="#059669" />
+            <stop offset="85%" stopColor="#10b981" />
+            <stop offset="100%" stopColor="#34d399" />
+          </linearGradient>
+        </defs>
 
-      {/* Gentle Horizontal Breeze Lines in Background */}
-      <div className="pointer-events-none absolute inset-0 flex flex-col justify-around opacity-40 px-8">
-        <div className="breeze-line w-2/3 h-px bg-gradient-to-r from-transparent via-emerald-400/50 to-transparent mx-auto origin-left" />
-        <div className="breeze-line w-4/5 h-px bg-gradient-to-r from-transparent via-teal-400/40 to-transparent mx-auto origin-right" />
-        <div className="breeze-line w-1/2 h-px bg-gradient-to-r from-transparent via-emerald-300/40 to-transparent mx-auto origin-left" />
-      </div>
+        {/* Bottom Layer 1: Vibrant Emerald Gradient Wave */}
+        <path
+          ref={greenWaveRef}
+          d={PATH_FLAT_START}
+          fill="url(#emeraldWaveGrad)"
+        />
 
-      {/* Center Blooming Stage */}
-      <div className="relative flex flex-col items-center justify-center text-center z-10 space-y-4">
-        {/* Central Blooming Flower / Leaf Emblem */}
-        <div className="relative flex items-center justify-center size-28">
-          {/* Water Ripples */}
-          <div className="bloom-ripple-1 absolute size-28 rounded-full border-2 border-emerald-400/50 pointer-events-none" />
-          <div className="bloom-ripple-2 absolute size-28 rounded-full border border-teal-300/40 pointer-events-none" />
+        {/* Top Layer 2: Pure Crisp White Layer */}
+        <path
+          ref={whiteWaveRef}
+          d={PATH_FLAT_START}
+          className="fill-white dark:fill-zinc-950"
+        />
+      </svg>
 
-          {/* Sparkles around badge */}
-          <div className="bloom-sparkle absolute -top-2 -right-2 text-emerald-500">
-            <Sparkles className="size-5" />
-          </div>
-          <div className="bloom-sparkle absolute -bottom-1 -left-2 text-teal-400">
-            <Sparkles className="size-4" />
-          </div>
+      {/* Luminous Emerald Atmosphere Glow Orbs on White Surface */}
+      <div className="emerald-glow pointer-events-none absolute size-[580px] rounded-full bg-emerald-500/20 dark:bg-emerald-500/15 blur-3xl" />
+      <div className="emerald-glow pointer-events-none absolute -bottom-24 -right-20 size-96 rounded-full bg-emerald-400/20 dark:bg-emerald-600/15 blur-3xl" />
+      <div className="emerald-glow pointer-events-none absolute -top-24 -left-20 size-96 rounded-full bg-teal-400/15 dark:bg-emerald-400/15 blur-3xl" />
 
-          {/* Blooming Emerald Emblem */}
-          <div
-            ref={leafRef}
-            className="bloom-badge relative flex size-20 items-center justify-center rounded-3xl bg-gradient-to-br from-emerald-400 via-emerald-500 to-teal-600 text-white shadow-xl shadow-emerald-500/35 ring-4 ring-white dark:ring-zinc-900"
+      {/* Center Typographic Stage */}
+      <div
+        ref={contentRef}
+        className="relative flex flex-col items-center justify-center text-center z-10 space-y-4 px-6 max-w-lg w-full"
+        style={{ willChange: "transform, opacity, filter" }}
+      >
+        <div className="space-y-1.5 pt-1">
+          <h1
+            ref={titleRef}
+            className="text-4xl sm:text-5xl font-black tracking-tight flex items-center justify-center gap-2"
           >
-            <Leaf className="bloom-leaf-icon size-10 fill-white/90 text-white drop-shadow-xs" />
-          </div>
-        </div>
-
-        {/* Typography Reveal */}
-        <div className="space-y-1 pt-1">
-          <h1 className="bloom-text-title text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground flex items-center justify-center gap-1.5">
-            <span>MindQuark</span>
+            <span className="text-emerald-950 dark:text-white">MindQuark</span>
             <span className="text-emerald-600 dark:text-emerald-400 font-lato-light-italic font-normal">
               Sanctuary
             </span>
           </h1>
 
-          <p className="bloom-text-sub text-xs sm:text-sm text-emerald-800/80 dark:text-emerald-300/80 font-medium font-lato-light-italic tracking-wide">
-            🌿 Breathe in clarity · Let go of noise
+          <p
+            ref={subRef}
+            className="text-xs sm:text-sm text-emerald-800 dark:text-emerald-300 font-semibold font-lato-light-italic"
+          >
+            Breathe in clarity · Step into mindful peace
           </p>
         </div>
+
+        {/* Minimalist Emerald Gradient Breath Line */}
+        <div
+          ref={dividerRef}
+          className="w-36 h-1 bg-gradient-to-r from-emerald-400 via-emerald-600 to-teal-400 dark:from-emerald-500 dark:via-emerald-400 dark:to-teal-300 mx-auto rounded-full shadow-sm shadow-emerald-500/30"
+        />
       </div>
 
-      {/* Subtle Skip button at bottom */}
+      {/* Clean Emerald Skip Button */}
       <button
         onClick={handleSkip}
-        className="absolute bottom-8 text-[11px] font-medium text-muted-foreground/60 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors cursor-pointer tracking-wider uppercase px-4 py-1.5 rounded-full hover:bg-emerald-500/10"
+        className="absolute bottom-8 z-20 text-[11px] font-semibold text-emerald-800/70 dark:text-emerald-300/70 hover:text-emerald-900 dark:hover:text-emerald-200 transition-all active:scale-95 cursor-pointer tracking-widest uppercase px-4 py-1.5 rounded-full hover:bg-emerald-500/10"
       >
-        Skip intro
+        Skip
       </button>
     </div>
   );

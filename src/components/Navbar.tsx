@@ -13,18 +13,31 @@ interface NavbarProps {
   onToggleDarkMode: () => void;
 }
 
+interface NavItemConfig {
+  id: NavTab;
+  label: string;
+  icon?: React.ComponentType<{ className?: string }>;
+  iconClass?: string;
+}
+
+const NAV_ITEMS: NavItemConfig[] = [
+  { id: "hero", label: "Explore", icon: Sparkles },
+  { id: "chat", label: "Chat", icon: MessageCircleHeart },
+  { id: "breathe", label: "Breathe", icon: Wind, iconClass: "text-teal-400" },
+  { id: "mood", label: "Mood", icon: HeartPulse, iconClass: "text-emerald-400" },
+  { id: "me", label: "Me" },
+];
+
 export const Navbar: React.FC<NavbarProps> = ({
   currentTab,
   onTabChange,
   isDarkMode,
   onToggleDarkMode,
 }) => {
-  const [profile, setProfile] = useState<ProfileConfig>(getProfileConfig());
+  const [profile, setProfile] = useState<ProfileConfig>(getProfileConfig);
 
   useEffect(() => {
-    return subscribeProfileConfig((newConfig) => {
-      setProfile(newConfig);
-    });
+    return subscribeProfileConfig(setProfile);
   }, []);
 
   return (
@@ -48,82 +61,38 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
 
-        {/* Navigation Tabs with emerald active glow */}
+        {/* Navigation Tabs */}
         <nav className="flex items-center gap-1 sm:gap-2 bg-emerald-500/5 dark:bg-emerald-950/30 p-1 rounded-full border border-emerald-500/10">
-          <Button
-            variant={currentTab === "hero" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => onTabChange("hero")}
-            className={`rounded-full text-xs sm:text-sm h-8 sm:h-8.5 px-3.5 gap-1.5 transition-all ${
-              currentTab === "hero"
-                ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shadow-emerald-600/20"
-                : "text-muted-foreground hover:text-foreground hover:bg-emerald-500/10"
-            }`}
-          >
-            <Sparkles className="size-3.5" />
-            <span>Explore</span>
-          </Button>
+          {NAV_ITEMS.map((item) => {
+            const isActive = currentTab === item.id;
+            const Icon = item.icon;
 
-          <Button
-            variant={currentTab === "chat" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => onTabChange("chat")}
-            className={`rounded-full text-xs sm:text-sm h-8 sm:h-8.5 px-4 gap-1.5 transition-all ${
-              currentTab === "chat"
-                ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shadow-emerald-600/20"
-                : "text-muted-foreground hover:text-foreground hover:bg-emerald-500/10"
-            }`}
-          >
-            <MessageCircleHeart className="size-3.5" />
-            <span>Chat</span>
-          </Button>
-
-          <Button
-            variant={currentTab === "breathe" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => onTabChange("breathe")}
-            className={`rounded-full text-xs sm:text-sm h-8 sm:h-8.5 px-3.5 gap-1.5 transition-all ${
-              currentTab === "breathe"
-                ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shadow-emerald-600/20"
-                : "text-muted-foreground hover:text-foreground hover:bg-emerald-500/10"
-            }`}
-          >
-            <Wind className="size-3.5 text-teal-400" />
-            <span>Breathe</span>
-          </Button>
-
-          <Button
-            variant={currentTab === "mood" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => onTabChange("mood")}
-            className={`rounded-full text-xs sm:text-sm h-8 sm:h-8.5 px-3.5 gap-1.5 transition-all ${
-              currentTab === "mood"
-                ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shadow-emerald-600/20"
-                : "text-muted-foreground hover:text-foreground hover:bg-emerald-500/10"
-            }`}
-          >
-            <HeartPulse className="size-3.5 text-rose-400" />
-            <span>Mood</span>
-          </Button>
-
-          <Button
-            variant={currentTab === "me" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => onTabChange("me")}
-            className={`rounded-full text-xs sm:text-sm h-8 sm:h-8.5 px-3.5 gap-1.5 transition-all ${
-              currentTab === "me"
-                ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shadow-emerald-600/20"
-                : "text-muted-foreground hover:text-foreground hover:bg-emerald-500/10"
-            }`}
-          >
-            <Avatar className="size-5 ring-1 ring-white/30">
-              <AvatarImage src={profile.userAvatar} />
-              <AvatarFallback className="text-[10px] bg-emerald-700 text-white">
-                {profile.userName[0] || "U"}
-              </AvatarFallback>
-            </Avatar>
-            <span>Me</span>
-          </Button>
+            return (
+              <Button
+                key={item.id}
+                variant={isActive ? "default" : "ghost"}
+                size="sm"
+                onClick={() => onTabChange(item.id)}
+                className={`rounded-full text-xs sm:text-sm h-8 sm:h-8.5 px-3.5 sm:px-4 gap-1.5 transition-all ${
+                  isActive
+                    ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shadow-emerald-600/20"
+                    : "text-muted-foreground hover:text-foreground hover:bg-emerald-500/10"
+                }`}
+              >
+                {item.id === "me" ? (
+                  <Avatar className="size-5 ring-1 ring-white/30">
+                    <AvatarImage src={profile.userAvatar} />
+                    <AvatarFallback className="text-[10px] bg-emerald-700 text-white">
+                      {profile.userName[0] || "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                ) : (
+                  Icon && <Icon className={`size-3.5 ${item.iconClass || ""}`} />
+                )}
+                <span>{item.label}</span>
+              </Button>
+            );
+          })}
         </nav>
 
         {/* Theme Toggle */}
