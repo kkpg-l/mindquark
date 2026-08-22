@@ -90,7 +90,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
         {/* Quick Mood Entry Pills */}
         <div className="mt-10 w-full max-w-2xl">
-          <p className="text-xs font-medium text-emerald-800/70 dark:text-emerald-200/70 mb-3 font-lato-light-italic">
+          <p className="text-xs font-semibold text-emerald-900 dark:text-emerald-300 mb-3 font-lato-light-italic">
             💡 What is resting on your mind today? Click to begin gently:
           </p>
           <div className="flex flex-wrap justify-center gap-2">

@@ -4,14 +4,13 @@
 
 ## Highlights
 
-MindQuark combines two supportive conversational personas with multiple paced breathing techniques, 5-4-3-2-1 sensory grounding, local profile personalization, dialogue reflection, and optional voice input/output. It is designed for a calm, short-form hackathon demonstration rather than clinical use.
+MindQuark combines two supportive conversational personas with paced breathing, 5-4-3-2-1 sensory grounding, local profile personalization, dialogue reflection, and optional voice input/output. It is designed for a calm, short-form hackathon demonstration rather than clinical use.
 
 | Capability | Implementation |
 |---|---|
 | Supportive conversation | Two selectable CBT-informed personas with a local fallback when providers are unavailable. |
 | Crisis handling | Local and server-side high-risk screening returns a static crisis-support response before model generation. |
-| Breathing techniques | 4-7-8 Vagus Nerve Reset, Box Breathing 4-4-4-4, Resonance Rhythm (5.5 breaths/min), Triangle Breathing 4-4-4 — each with visual pacing, phase guidance, and optional chimes. |
-| Sensory grounding | Interactive 5-4-3-2-1 checklist (sight, touch, sound, smell, taste) with step-by-step prompts. |
+| Grounding | Guided breathing techniques, 5-4-3-2-1 sensory grounding, visual pacing, and optional chimes. |
 | Voice | iFlytek speech services with browser speech-recognition fallback and bounded audio caching. |
 | Deployment | React/Vite client with a Tencent CloudBase serverless Express API. |
 

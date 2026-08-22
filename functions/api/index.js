@@ -20,20 +20,6 @@ const allowedOrigins = new Set(
     .filter(Boolean)
 );
 
-// If no explicit CORS_ORIGINS set, allow any hostname matching the request host
-if (!process.env.CORS_ORIGINS && !allowedOrigins.has("*")) {
-  const requestHost = (req) => {
-    const forwarded = req.headers["x-forwarded-for"];
-    return Array.isArray(forwarded) ? forwarded[0] : forwarded || req.ip || "unknown";
-  };
-  app.use((req, res, next) => {
-    if (allowedOrigins.size === 0) {
-      const host = requestHost(req).replace(/:\d+$/, "");
-      allowedOrigins.add(host);
-    }
-    next();
-  });
-}
 const RATE_LIMIT_WINDOW_MS = getPositiveInteger(process.env.RATE_LIMIT_WINDOW_MS, 60_000);
 const RATE_LIMIT_MAX_REQUESTS = getPositiveInteger(process.env.RATE_LIMIT_MAX_REQUESTS, 30);
 const MAX_MESSAGE_LENGTH = 4_000;
