@@ -1,4 +1,5 @@
 import { getCrisisFallback, isHighRiskText } from "@/lib/safety";
+import { getCaptchaVerification } from "@/lib/tcaptcha";
 
 const API_BASE_URL = (
   import.meta.env.VITE_API_BASE_URL ||
@@ -39,10 +40,17 @@ export async function sendChatMessage(
   if (isHighRiskText(text)) return createCrisisResponse(text);
 
   try {
+    const captchaData = await getCaptchaVerification();
     const response = await fetch(`${API_BASE_URL}/api/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: text, history, persona }),
+      body: JSON.stringify({
+        message: text,
+        history,
+        persona,
+        captchaTicket: captchaData?.ticket,
+        captchaRandstr: captchaData?.randstr,
+      }),
       signal: AbortSignal.timeout(25_000),
     });
 

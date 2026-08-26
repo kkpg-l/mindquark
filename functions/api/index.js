@@ -29,8 +29,12 @@ function isOriginAllowed(origin) {
   try {
     const url = new URL(origin);
     const host = url.hostname;
-    // Allow CloudBase production and preview hosting domains
-    if (host.endsWith(".tcloudbaseapp.com") || host.endsWith(".tcloudbase.com")) {
+    // Allow CloudBase production/preview hosting and Cloudflare Pages domains
+    if (
+      host.endsWith(".tcloudbaseapp.com") ||
+      host.endsWith(".tcloudbase.com") ||
+      host.endsWith(".pages.dev")
+    ) {
       return true;
     }
     // Allow local development hostnames
@@ -64,6 +68,108 @@ app.use(
   })
 );
 app.use(express.json({ limit: "64kb" }));
+
+const BOT_UA_REGEX = /(python-requests|aiohttp|httpx|urllib|scrapy|postmanruntime|insomnia|httpie|go-http-client|okhttp|libwww-perl|wget)/i;
+
+function antiBotMiddleware(req, res, next) {
+  // Allow health check endpoint for uptime monitors
+  if (req.path === "/health" || req.path === "/api/health") {
+    return next();
+  }
+
+  const userAgent = String(req.headers["user-agent"] || "").trim();
+
+  // 1. Block missing or suspiciously short User-Agent
+  if (!userAgent || userAgent.length < 5) {
+    return res.status(403).json({ error: "Access denied: Missing or invalid User-Agent." });
+  }
+
+  // 2. Block well-known automated crawler / scraper User-Agents
+  if (BOT_UA_REGEX.test(userAgent)) {
+    return res.status(403).json({ error: "Access denied: Automated scraper detected." });
+  }
+
+  // 3. Honeypot check: reject if hidden bot trap fields were filled
+  if (req.body && (req.body._hp_trap || req.body.__bot_field)) {
+    return res.status(403).json({ error: "Access denied: Bot honeypot triggered." });
+  }
+
+  next();
+}
+
+app.use(antiBotMiddleware);
+
+function verifyTencentCaptcha({ ticket, randstr, userIp }) {
+  const appId = process.env.TCAPTCHA_APP_ID?.trim() || process.env.CAPTCHA_APP_ID?.trim();
+  const secretKey = process.env.TCAPTCHA_SECRET_KEY?.trim() || process.env.CAPTCHA_SECRET_KEY?.trim();
+
+  // If captcha is not configured in env, allow request (graceful degradation)
+  if (!appId || !secretKey) {
+    return Promise.resolve({ ok: true, skipped: true });
+  }
+
+  if (!ticket || !randstr) {
+    return Promise.resolve({ ok: false, error: "Tencent Cloud Captcha verification required." });
+  }
+
+  const postData = JSON.stringify({
+    CaptchaType: 9,
+    Ticket: ticket,
+    Randstr: randstr,
+    CaptchaAppId: Number(appId) || appId,
+    AppSecretKey: secretKey,
+    UserIp: userIp || "127.0.0.1",
+  });
+
+  return new Promise((resolve) => {
+    const req = https.request(
+      {
+        hostname: "captcha.tencentcloudapi.com",
+        port: 443,
+        path: "/",
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-TC-Action": "DescribeCaptchaResult",
+          "X-TC-Version": "2019-07-22",
+          "Content-Length": Buffer.byteLength(postData),
+        },
+        timeout: 5000,
+      },
+      (response) => {
+        let body = "";
+        response.on("data", (chunk) => (body += chunk));
+        response.on("end", () => {
+          try {
+            const data = JSON.parse(body);
+            const captchaCode = data.Response?.CaptchaCode;
+            if (captchaCode === 1) {
+              resolve({ ok: true });
+            } else {
+              const msg = data.Response?.CaptchaMsg || "Tencent Captcha verification failed.";
+              resolve({ ok: false, error: msg });
+            }
+          } catch (e) {
+            resolve({ ok: false, error: "Failed to parse captcha verification response." });
+          }
+        });
+      }
+    );
+
+    req.on("error", (err) => {
+      console.warn("Captcha verification network warning:", err.message);
+      // Soft-degrade if upstream captcha network times out
+      resolve({ ok: true, degraded: true });
+    });
+    req.on("timeout", () => {
+      req.destroy();
+      resolve({ ok: true, degraded: true });
+    });
+
+    req.write(postData);
+    req.end();
+  });
+}
 
 function getPositiveInteger(value, fallback) {
   const parsed = Number.parseInt(value, 10);
@@ -401,6 +507,18 @@ router.post("/tts", rateLimit, async (req, res) => {
   const textResult = limitText(req.body?.text, MAX_TTS_LENGTH, "Text");
   if (textResult.error) return res.status(400).json({ error: textResult.error });
 
+  // Tencent Cloud Captcha (防水墙) verification
+  const captchaTicket = req.body?.captchaTicket || req.headers["x-captcha-ticket"];
+  const captchaRandstr = req.body?.captchaRandstr || req.headers["x-captcha-randstr"];
+  const captchaResult = await verifyTencentCaptcha({
+    ticket: captchaTicket,
+    randstr: captchaRandstr,
+    userIp: getClientKey(req),
+  });
+  if (!captchaResult.ok) {
+    return res.status(403).json({ error: captchaResult.error || "Captcha verification failed." });
+  }
+
   const voice = req.body?.voice === "male" ? "male" : "female";
   const requestedSpeed = Number(req.body?.speed);
   const speed = Number.isFinite(requestedSpeed) ? Math.min(100, Math.max(0, requestedSpeed)) : 48;
@@ -421,6 +539,18 @@ router.post("/chat", rateLimit, async (req, res) => {
 
   const crisisResponse = getCrisisResponse(messageResult.text);
   if (crisisResponse) return res.json(crisisResponse);
+
+  // Tencent Cloud Captcha (防水墙) verification
+  const captchaTicket = req.body?.captchaTicket || req.headers["x-captcha-ticket"];
+  const captchaRandstr = req.body?.captchaRandstr || req.headers["x-captcha-randstr"];
+  const captchaResult = await verifyTencentCaptcha({
+    ticket: captchaTicket,
+    randstr: captchaRandstr,
+    userIp: getClientKey(req),
+  });
+  if (!captchaResult.ok) {
+    return res.status(403).json({ error: captchaResult.error || "Captcha verification failed." });
+  }
 
   const persona = req.body?.persona === "male" ? "male" : "female";
   const messages = [
@@ -460,6 +590,18 @@ router.post("/reframe", rateLimit, async (req, res) => {
   const crisisResponse = getCrisisResponse(thoughtResult.text);
   if (crisisResponse) return res.json(crisisResponse);
 
+  // Tencent Cloud Captcha (防水墙) verification
+  const captchaTicket = req.body?.captchaTicket || req.headers["x-captcha-ticket"];
+  const captchaRandstr = req.body?.captchaRandstr || req.headers["x-captcha-randstr"];
+  const captchaResult = await verifyTencentCaptcha({
+    ticket: captchaTicket,
+    randstr: captchaRandstr,
+    userIp: getClientKey(req),
+  });
+  if (!captchaResult.ok) {
+    return res.status(403).json({ error: captchaResult.error || "Captcha verification failed." });
+  }
+
   const distortionType = typeof req.body?.distortionType === "string"
     ? req.body.distortionType.trim().slice(0, 100) || "all-or-nothing"
     : "all-or-nothing";
@@ -497,6 +639,18 @@ router.post("/analyze", rateLimit, async (req, res) => {
 
   const crisisResponse = getCrisisResponse(transcriptResult.text);
   if (crisisResponse) return res.json(crisisResponse);
+
+  // Tencent Cloud Captcha (防水墙) verification
+  const captchaTicket = req.body?.captchaTicket || req.headers["x-captcha-ticket"];
+  const captchaRandstr = req.body?.captchaRandstr || req.headers["x-captcha-randstr"];
+  const captchaResult = await verifyTencentCaptcha({
+    ticket: captchaTicket,
+    randstr: captchaRandstr,
+    userIp: getClientKey(req),
+  });
+  if (!captchaResult.ok) {
+    return res.status(403).json({ error: captchaResult.error || "Captcha verification failed." });
+  }
 
   const prompt = `You are an expert CBT-informed dialogue auditor. Analyze the following pasted conversation, which may be between a user and an AI agent or between two individuals:
 

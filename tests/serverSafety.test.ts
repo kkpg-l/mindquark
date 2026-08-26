@@ -38,4 +38,10 @@ describe("server safety gateway", () => {
     expect(apiSource).toContain("router.post(\"/reframe\"");
     expect(apiSource).toContain("router.post(\"/analyze\"");
   });
+
+  it("enforces anti-bot and scraper protection middleware", () => {
+    expect(apiSource).toContain("antiBotMiddleware");
+    expect(apiSource).toContain("python-requests");
+    expect(apiSource).toContain("Access denied: Automated scraper detected.");
+  });
 });
