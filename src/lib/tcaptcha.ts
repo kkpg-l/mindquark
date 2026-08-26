@@ -39,7 +39,7 @@ export async function getCaptchaVerification(): Promise<{ ticket?: string; rands
 
   return new Promise((resolve) => {
     try {
-      const captcha = new window.TencentCaptcha(
+      const captcha = new (window as unknown as { TencentCaptcha: typeof window.TencentCaptcha }).TencentCaptcha(
         TCAPTCHA_APP_ID,
         (res: TencentCaptchaResult) => {
           if (res && res.ret === 0 && res.ticket && res.randstr) {
