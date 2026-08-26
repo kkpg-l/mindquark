@@ -245,9 +245,13 @@ function MessageActions({
 
 export default function MessageConversation({
   className,
+  initialPrompt,
+  onPromptConsumed,
   onNavigateToBreathe,
 }: {
   className?: string;
+  initialPrompt?: string;
+  onPromptConsumed?: () => void;
   onNavigateToBreathe?: () => void;
 }) {
   const [profile, setProfile] = useState<ProfileConfig>(getProfileConfig());
@@ -380,6 +384,13 @@ Take all the time you need. We can gently explore what you're experiencing step-
       }
     }
   }, [messages, isTyping]);
+
+  useEffect(() => {
+    if (initialPrompt && initialPrompt.trim()) {
+      handleSend(initialPrompt);
+      onPromptConsumed?.();
+    }
+  }, [initialPrompt]);
 
   const handleSend = async (overrideText?: string) => {
     const textToSend = (overrideText || inputVal).trim();

@@ -11,6 +11,9 @@ const app = express();
 const DEFAULT_ALLOWED_ORIGINS = [
   "http://localhost:5173",
   "http://127.0.0.1:5173",
+  "http://localhost:3000",
+  "https://kkpg-d2ga363tca9086e3e-1469579803.tcloudbaseapp.com",
+  "https://kkpg-d2ga363tca9086e3e-1469579803.ap-shanghai.app.tcloudbase.com",
 ];
 // Allow dynamic origin detection when CORS_ORIGINS is not configured
 const allowedOrigins = new Set(
@@ -19,6 +22,24 @@ const allowedOrigins = new Set(
     .map((origin) => origin.trim())
     .filter(Boolean)
 );
+
+function isOriginAllowed(origin) {
+  if (!origin) return true;
+  if (allowedOrigins.has(origin)) return true;
+  try {
+    const url = new URL(origin);
+    const host = url.hostname;
+    // Allow CloudBase production and preview hosting domains
+    if (host.endsWith(".tcloudbaseapp.com") || host.endsWith(".tcloudbase.com")) {
+      return true;
+    }
+    // Allow local development hostnames
+    if (host === "localhost" || host === "127.0.0.1") {
+      return true;
+    }
+  } catch {}
+  return false;
+}
 
 const RATE_LIMIT_WINDOW_MS = getPositiveInteger(process.env.RATE_LIMIT_WINDOW_MS, 60_000);
 const RATE_LIMIT_MAX_REQUESTS = getPositiveInteger(process.env.RATE_LIMIT_MAX_REQUESTS, 30);
@@ -33,7 +54,7 @@ const requestBuckets = new Map();
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin || allowedOrigins.has(origin)) {
+      if (isOriginAllowed(origin)) {
         return callback(null, true);
       }
       return callback(new Error("Origin is not allowed by CORS policy"));
@@ -193,15 +214,34 @@ function requestChatCompletion({ hostname, path, authorization, model, messages,
   });
 }
 
-function callPrimaryModel(messages, maxTokens = 600) {
-  return requestChatCompletion({
-    hostname: "openrouter.ai",
-    path: "/api/v1/chat/completions",
-    authorization: `Bearer ${requireConfigured("OPENROUTER_API_KEY")}`,
-    model: process.env.PRIMARY_MODEL?.trim() || "google/gemma-4-26b-a4b-it:free",
-    messages,
-    maxTokens,
-  });
+const FALLBACK_MODELS = [
+  "minimax/minimax-m2.7:free",
+  "z-ai/glm-5.2:free",
+  "google/gemma-4-26b-a4b-it:free",
+];
+
+async function callPrimaryModel(messages, maxTokens = 600) {
+  const configuredModel = process.env.PRIMARY_MODEL?.trim() || "minimax/minimax-m2.7:free";
+  const apiKey = requireConfigured("OPENROUTER_API_KEY");
+  const modelsToTry = [configuredModel, ...FALLBACK_MODELS.filter((m) => m !== configuredModel)];
+
+  let lastError;
+  for (const model of modelsToTry) {
+    try {
+      return await requestChatCompletion({
+        hostname: "openrouter.ai",
+        path: "/api/v1/chat/completions",
+        authorization: `Bearer ${apiKey}`,
+        model,
+        messages,
+        maxTokens,
+      });
+    } catch (err) {
+      lastError = err;
+      console.warn(`Model ${model} failed, trying next candidate:`, err.message);
+    }
+  }
+  throw lastError || new Error("All primary models failed");
 }
 
 function callBackupModel(messages, maxTokens = 600) {

@@ -13,6 +13,7 @@ export default function App() {
   const [currentTab, setCurrentTab] = useState<NavTab>("hero");
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [showIntro, setShowIntro] = useState(true);
+  const [initialChatPrompt, setInitialChatPrompt] = useState<string | undefined>(undefined);
   const contentRef = useRef<HTMLDivElement>(null);
 
   // Toggle Dark Mode
@@ -60,7 +61,10 @@ export default function App() {
     }
   };
 
-  const handleStartChatWithPrompt = (_prompt?: string) => {
+  const handleStartChatWithPrompt = (prompt?: string) => {
+    if (prompt) {
+      setInitialChatPrompt(prompt);
+    }
     handleTabSwitch("chat");
   };
 
@@ -102,7 +106,11 @@ export default function App() {
         {currentTab === "chat" && (
           <div className="container mx-auto max-w-5xl px-4 py-4 md:py-6">
             <ErrorBoundary fallbackTitle="Chat View Recovery">
-              <MessageConversation onNavigateToBreathe={() => handleTabSwitch("breathe")} />
+              <MessageConversation
+                initialPrompt={initialChatPrompt}
+                onPromptConsumed={() => setInitialChatPrompt(undefined)}
+                onNavigateToBreathe={() => handleTabSwitch("breathe")}
+              />
             </ErrorBoundary>
           </div>
         )}
@@ -115,9 +123,7 @@ export default function App() {
 
         {currentTab === "mood" && (
           <MoodTrackerSection
-            onStartChatWithMood={(_moodPrompt) => {
-              handleTabSwitch("chat");
-            }}
+            onStartChatWithMood={handleStartChatWithPrompt}
           />
         )}
 
