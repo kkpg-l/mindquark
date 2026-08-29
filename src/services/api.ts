@@ -96,6 +96,117 @@ export async function requestCbtReframe(thought: string, distortionType: string)
   return `💡【CBT Cognitive Reframing】\nOriginal Thought: "${thought}"\nBalanced Perspective: Thoughts are emotional signals, not permanent facts. Give yourself permission to make progress in gentle iterations rather than expecting instant perfection.`;
 }
 
+export interface VoiceCallResult {
+  call_outcome?: string;
+  crisis_signal?: string;
+  mood_after_call?: string;
+  support_summary?: string;
+}
+
+export interface VoiceCallResource {
+  label: string;
+  url: string;
+}
+
+export interface VoiceCallCreateResponse {
+  ok: boolean;
+  callId?: string;
+  status?: string;
+  error?: string;
+}
+
+export interface VoiceCallStatusResponse {
+  ok: boolean;
+  callId: string;
+  status: string;
+  crisis: boolean;
+  failureCode?: string | null;
+  result?: VoiceCallResult | null;
+  resources?: VoiceCallResource[];
+  error?: string;
+}
+
+const E164_PHONE_PATTERN = /^\+[1-9]\d{6,14}$/;
+
+export function normalizePhone(phone: string): string {
+  if (typeof phone !== "string") return "";
+  return phone.replace(/[\s\-\(\)\.]/g, "").trim();
+}
+
+export function isValidE164Phone(phone: string): boolean {
+  const cleaned = normalizePhone(phone);
+  return E164_PHONE_PATTERN.test(cleaned);
+}
+
+export async function createVoiceCall(
+  phone: string,
+  consent: boolean
+): Promise<VoiceCallCreateResponse> {
+  const normalized = normalizePhone(phone);
+  if (!consent) {
+    return { ok: false, error: "Explicit consent is required before requesting a support call." };
+  }
+  if (!isValidE164Phone(normalized)) {
+    return { ok: false, error: "Please enter a valid phone number in international format, for example +12125550123." };
+  }
+
+  try {
+    const captchaData = await getCaptchaVerification();
+    const response = await fetch(`${API_BASE_URL}/api/call/create`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        phone: normalized,
+        consent: true,
+        captchaTicket: captchaData?.ticket,
+        captchaRandstr: captchaData?.randstr,
+      }),
+      signal: AbortSignal.timeout(20_000),
+    });
+
+    const data = await response.json().catch(() => null);
+    if (response.ok && data?.ok) {
+      return { ok: true, callId: data.callId, status: data.status };
+    }
+    return { ok: false, error: data?.error || "The support call could not be scheduled. Please try again later." };
+  } catch (error) {
+    console.warn("Voice call request failed:", error);
+    return { ok: false, error: "The support call could not be scheduled. Please check your connection and try again." };
+  }
+}
+
+export async function getVoiceCallStatus(callId: string): Promise<VoiceCallStatusResponse> {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/api/call/status/${encodeURIComponent(callId)}`,
+      { signal: AbortSignal.timeout(15_000) }
+    );
+
+    const data = await response.json().catch(() => null);
+    if (response.ok && data?.ok) {
+      return {
+        ok: true,
+        callId: data.callId,
+        status: data.status,
+        crisis: Boolean(data.crisis),
+        failureCode: data.failureCode ?? null,
+        result: data.result ?? null,
+        resources: data.resources,
+      };
+    }
+    return {
+      ok: false,
+      callId,
+      status: "unknown",
+      crisis: false,
+      error: data?.error || "Voice call status is temporarily unavailable.",
+    };
+  } catch (error) {
+    console.warn("Voice call status polling failed:", error);
+    return { ok: false, callId, status: "unknown", crisis: false, error: "Voice call status is temporarily unavailable." };
+  }
+}
+
 export async function analyzeDialogue(transcript: string): Promise<string> {
   if (isHighRiskText(transcript)) return getCrisisFallback(transcript);
 

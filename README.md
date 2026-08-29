@@ -17,6 +17,7 @@ MindQuark combines dual empathetic conversational personas with paced breathing,
 | **Crisis Safety Gateway** | Multi-layer local and server-side high-risk screening returning static crisis-support resources prior to model inference. |
 | **Somatic Grounding** | Sacred mandala kinetic breath guide (4-7-8, Box, 4-4, Deep Calm), 5-4-3-2-1 sensory radar, and interactive visual pacing. |
 | **Voice & Speech Services** | iFlytek speech services (IAT & TTS) with browser speech-recognition fallback and audio caching. |
+| **AI Voice Check-in Calls** | CALL-E powered outbound companion calls: user-requested supportive check-ins with a crisis-safety call script, per-IP daily quotas, a global in-flight cap, and structured post-call results (never storing phone numbers). |
 | **Full-Stack Deployment** | React 19 + TypeScript + Vite + Tailwind CSS static client hosted on Tencent CloudBase with Serverless Express API. |
 
 ---
@@ -33,7 +34,9 @@ Tencent CloudBase Serverless Function (/api)
   ├─ Bounded JSON body validation & sanitization
   ├─ Shared high-risk safety gateway & crisis short-circuit
   ├─ Primary / backup LLM failover (DeepSeek / GLM / OpenRouter)
-  └─ iFlytek IAT and TTS signing proxy
+  ├─ iFlytek IAT and TTS signing proxy
+  └─ CALL-E voice check-in proxy (/api/call/create, /api/call/status/:id)
+       └─ https://api.heycall-e.com (Bearer CALLE_API_KEY, server-only)
 ```
 
 ---

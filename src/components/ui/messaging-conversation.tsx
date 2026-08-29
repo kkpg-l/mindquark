@@ -20,6 +20,8 @@ import {
   Volume2,
   VolumeX,
   Wind,
+  Phone,
+  X,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -34,13 +36,17 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import {
   sendChatMessage,
+  createVoiceCall,
+  getVoiceCallStatus,
   type ChatHistoryMessage,
   type CounselorPersona,
+  type VoiceCallStatusResponse,
 } from "@/services/api";
 import { getProfileConfig, subscribeProfileConfig, type ProfileConfig } from "@/lib/profileStore";
 import { ThinkingOrb } from "thinking-orbs";
 import { IFlytekVoiceDictation } from "@/lib/iflytekSpeech";
 import { ttsPlayer } from "@/lib/iflytekTTS";
+import { VoiceCallModal, type VoiceCallPhase } from "@/components/VoiceCallModal";
 
 type StatusType = "online" | "dnd" | "offline";
 
@@ -84,10 +90,12 @@ function UserActionsMenu({
   onClear,
   autoSpeak,
   onToggleAutoSpeak,
+  onOpenCallModal,
 }: {
   onClear?: () => void;
   autoSpeak?: boolean;
   onToggleAutoSpeak?: () => void;
+  onOpenCallModal?: () => void;
 }) {
   return (
     <DropdownMenu>
@@ -106,8 +114,21 @@ function UserActionsMenu({
           />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="min-w-44 rounded-xl bg-popover p-1.5 shadow-xl backdrop-blur-md">
+      <DropdownMenuContent className="min-w-48 rounded-xl bg-popover p-1.5 shadow-xl backdrop-blur-md">
         <div className="flex flex-col gap-1">
+          {onOpenCallModal && (
+            <Button
+              onClick={onOpenCallModal}
+              className="w-full justify-start gap-2.5 rounded-lg text-xs font-medium bg-transparent text-emerald-700 dark:text-emerald-300 hover:bg-accent"
+              size="sm"
+              type="button"
+              variant="ghost"
+            >
+              <Phone aria-hidden="true" className="size-4 text-emerald-600 dark:text-emerald-400" focusable="false" />
+              <span>Call Me (AI Phone Call)</span>
+            </Button>
+          )}
+
           <Button
             onClick={onToggleAutoSpeak}
             className="w-full justify-start gap-2.5 rounded-lg text-xs font-medium bg-transparent text-foreground hover:bg-accent"
@@ -331,6 +352,16 @@ Take all the time you need. We can gently explore what you're experiencing step-
   const [crisisMessage, setCrisisMessage] = useState<string | null>(null);
   const [isRecordingVoice, setIsRecordingVoice] = useState(false);
   const [voiceLanguage, setVoiceLanguage] = useState<"en_us" | "zh_cn">("en_us");
+
+  // CALL-E voice check-in call state
+  const [callModalOpen, setCallModalOpen] = useState(false);
+  const [callPhase, setCallPhase] = useState<VoiceCallPhase>("form");
+  const [callPhone, setCallPhone] = useState("");
+  const [callConsent, setCallConsent] = useState(false);
+  const [callError, setCallError] = useState<string | null>(null);
+  const [callStatusText, setCallStatusText] = useState<string | null>(null);
+  const activeCallIdRef = useRef<string | null>(null);
+
   const dictationRef = useRef<IFlytekVoiceDictation | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -375,6 +406,148 @@ Take all the time you need. We can gently explore what you're experiencing step-
     setPersona(newPersona);
     setMessages((prev) => (prev.length <= 1 ? [createWelcomeMessage(newPersona)] : prev));
   };
+
+  // ── CALL-E「Call Me」外呼功能 ────────────────────────────────────────
+  const addCounselorMessage = (text: string, cbtTip: string) => {
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `voice-call-${Date.now()}`,
+        text,
+        sender: currentCounselor,
+        time: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
+        cbtTip,
+      },
+    ]);
+  };
+
+  const openVoiceCallModal = () => {
+    setCallModalOpen(true);
+    if (callPhase !== "calling") {
+      setCallPhase("form");
+      setCallError(null);
+      setCallStatusText(null);
+      setCallConsent(false);
+    }
+  };
+
+  const handleStartVoiceCall = async () => {
+    setCallError(null);
+    if (!callConsent) {
+      setCallError("Please confirm you consent to receive a support call.");
+      return;
+    }
+
+    setCallPhase("creating");
+    const response = await createVoiceCall(callPhone, callConsent);
+
+    if (!response.ok || !response.callId) {
+      setCallPhase("form");
+      setCallError(response.error || "The support call could not be scheduled.");
+      return;
+    }
+
+    activeCallIdRef.current = response.callId;
+    setCallStatusText("Your companion is dialing you now... 📞");
+    setCallPhase("calling");
+  };
+
+  const handleCallOutcome = (status: VoiceCallStatusResponse) => {
+    setCallModalOpen(false);
+    setCallPhase("form");
+    setCallStatusText(null);
+    activeCallIdRef.current = null;
+
+    if (status.ok && status.crisis) {
+      setCrisisMessage(
+        "During your Call Me session, signs of serious distress were noticed. Your safety comes first — please reach out now. If you are in the US or Canada, call or text 988, or contact your local emergency services immediately."
+      );
+      addCounselorMessage(
+        "I'm really glad we spoke, but right now I want to make sure you are safe. 💚 Please call or text 988 (US/Canada), or your local emergency services if you are in immediate danger. You matter, and support is available right now.",
+        "Crisis Safety: Prioritize immediate human support"
+      );
+      return;
+    }
+
+    if (status.ok && status.status === "completed") {
+      const mood = status.result?.mood_after_call;
+      const summary = status.result?.support_summary;
+      const moodNote =
+        mood === "better"
+          ? " I'm so glad you're feeling a little lighter than when we started."
+          : mood === "worse"
+            ? " I hear that things felt heavier as we talked — that's okay, and I'm here."
+            : "";
+      addCounselorMessage(
+        `📞 It was so good to hear your voice just now.${moodNote}${summary ? ` ${summary}` : ""} Remember, I'm right here in this chat whenever you need me. 🌸`,
+        "Call Me • CALL-E Companion Call"
+      );
+      return;
+    }
+
+    if (status.ok && (status.status === "failed" || status.status === "canceled")) {
+      addCounselorMessage(
+        "📞 I tried to reach you for our voice check-in, but the call couldn't go through this time. We can try again later — or just keep chatting with me right here. 🌿",
+        "Call Me • Call Not Connected"
+      );
+      return;
+    }
+
+    addCounselorMessage(
+      "📞 Our voice check-in is still wrapping up on the line. I'll share a gentle note here once it's done — meanwhile, I'm right here with you.",
+      "Call Me • Awaiting Final Report"
+    );
+  };
+
+  // Poll the backend (which proxies CALL-E) while a call is in flight
+  useEffect(() => {
+    if (callPhase !== "calling") return;
+    let cancelled = false;
+    let attempts = 0;
+    let consecutiveErrors = 0;
+    const MAX_ATTEMPTS = 48; // ~4 minutes at 5s intervals
+    const MAX_CONSECUTIVE_ERRORS = 3;
+
+    const poll = async () => {
+      attempts += 1;
+      const callId = activeCallIdRef.current;
+      if (cancelled || !callId) return;
+
+      const status = await getVoiceCallStatus(callId);
+      if (cancelled) return;
+
+      if (!status.ok) {
+        consecutiveErrors += 1;
+        if (consecutiveErrors < MAX_CONSECUTIVE_ERRORS && attempts < MAX_ATTEMPTS) {
+          setTimeout(poll, 5_000);
+          return;
+        }
+        handleCallOutcome(status);
+        return;
+      }
+
+      consecutiveErrors = 0;
+      if (status.status === "queued" || status.status === "in_progress") {
+        if (attempts < MAX_ATTEMPTS) {
+          setTimeout(poll, 5_000);
+          return;
+        }
+        handleCallOutcome({ ok: false, callId, status: "unknown", crisis: false });
+        return;
+      }
+
+      handleCallOutcome(status);
+    };
+
+    const timer = setTimeout(poll, 5_000);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [callPhase]);
+  // ────────────────────────────────────────────────────────────────────
+
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -536,6 +709,23 @@ Take all the time you need. We can gently explore what you're experiencing step-
             </button>
           </div>
 
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={openVoiceCallModal}
+            className="inline-flex items-center gap-1.5 rounded-2xl border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20 text-xs h-8 px-2.5 sm:px-3 transition-all cursor-pointer shadow-2xs"
+            title="Ask your companion to call you"
+          >
+            <Phone className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+            <span className="hidden xs:inline">Call Me</span>
+            {callPhase === "calling" && (
+              <span className="relative flex size-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full size-2 bg-emerald-500" />
+              </span>
+            )}
+          </Button>
+
           {onNavigateToBreathe && (
             <Button
               variant="outline"
@@ -552,6 +742,7 @@ Take all the time you need. We can gently explore what you're experiencing step-
             onClear={clearChat}
             autoSpeak={autoSpeak}
             onToggleAutoSpeak={() => setAutoSpeak(!autoSpeak)}
+            onOpenCallModal={openVoiceCallModal}
           />
         </div>
       </CardHeader>
@@ -769,6 +960,21 @@ Take all the time you need. We can gently explore what you're experiencing step-
           </Button>
         </div>
       </div>
+
+      {/* Call Me Modal */}
+      <VoiceCallModal
+        isOpen={callModalOpen}
+        onClose={() => setCallModalOpen(false)}
+        counselorName={currentCounselor.name}
+        callPhase={callPhase}
+        callPhone={callPhone}
+        onPhoneChange={setCallPhone}
+        callConsent={callConsent}
+        onConsentChange={setCallConsent}
+        callError={callError}
+        callStatusText={callStatusText}
+        onStartCall={handleStartVoiceCall}
+      />
     </Card>
   );
 }

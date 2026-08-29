@@ -5,8 +5,19 @@ const https = require("node:https");
 const crypto = require("node:crypto");
 const WebSocket = require("ws");
 const { assessSafety, buildCrisisResponse } = require("./safety");
+const {
+  CALL_RESULT_SCHEMA,
+  buildCallTask,
+  buildStableIdempotencyKey,
+  callCalleApi,
+  isTerminalCallStatus,
+  isValidCallId,
+  isValidCallPhone,
+  normalizeCallPhone,
+} = require("./calle");
 
 const app = express();
+app.set("trust proxy", 1);
 
 const DEFAULT_ALLOWED_ORIGINS = [
   "http://localhost:5173",
@@ -54,6 +65,45 @@ const MAX_TTS_LENGTH = 1_000;
 const MAX_HISTORY_ITEMS = 8;
 const MAX_HISTORY_MESSAGE_LENGTH = 1_200;
 const requestBuckets = new Map();
+
+// CALL-E voice check-in call guards (real phone calls cost real money)
+const CALL_MAX_PER_DAY_PER_IP = getPositiveInteger(process.env.CALL_MAX_PER_DAY_PER_IP, 3);
+const CALL_MAX_ACTIVE = getPositiveInteger(process.env.CALL_MAX_ACTIVE, 1);
+const CALL_ACTIVE_TTL_MS = 15 * 60 * 1000; // 15 minutes max active call timeout to prevent permanent lockouts
+const callDayBuckets = new Map(); // `${clientKey}:${YYYY-MM-DD}` -> calls created
+const activeCalls = new Map(); // callId -> { clientKey, createdAt } (released on terminal status poll or TTL)
+
+function pruneActiveCalls() {
+  const now = Date.now();
+  for (const [id, entry] of activeCalls) {
+    if (!entry?.createdAt || now - entry.createdAt > CALL_ACTIVE_TTL_MS) {
+      activeCalls.delete(id);
+    }
+  }
+}
+
+function pruneRequestBuckets() {
+  const now = Date.now();
+  for (const [key, bucket] of requestBuckets) {
+    if (now - bucket.windowStart >= RATE_LIMIT_WINDOW_MS * 2) {
+      requestBuckets.delete(key);
+    }
+  }
+}
+
+function pruneCallDayBuckets() {
+  const today = new Date().toISOString().slice(0, 10);
+  for (const [key] of callDayBuckets) {
+    if (!key.endsWith(`:${today}`)) {
+      callDayBuckets.delete(key);
+    }
+  }
+}
+
+const CALL_CRISIS_RESOURCES = [
+  { label: "988 Suicide & Crisis Lifeline (US/Canada)", url: "https://988lifeline.org/" },
+  { label: "Find A Helpline (international)", url: "https://findahelpline.com/" },
+];
 
 app.use(
   cors({
@@ -103,8 +153,13 @@ function verifyTencentCaptcha({ ticket, randstr, userIp }) {
   const appId = process.env.TCAPTCHA_APP_ID?.trim() || process.env.CAPTCHA_APP_ID?.trim();
   const secretKey = process.env.TCAPTCHA_SECRET_KEY?.trim() || process.env.CAPTCHA_SECRET_KEY?.trim();
 
-  // If captcha is not configured in env, allow request (graceful degradation)
-  if (!appId || !secretKey) {
+  // If captcha is not configured in env or placeholder is present, allow request (graceful degradation)
+  if (
+    !appId ||
+    !secretKey ||
+    appId.startsWith("__SET_IN_") ||
+    secretKey.startsWith("__SET_IN_")
+  ) {
     return Promise.resolve({ ok: true, skipped: true });
   }
 
@@ -192,6 +247,13 @@ function getClientKey(req) {
 
 function rateLimit(req, res, next) {
   const now = Date.now();
+  if (requestBuckets.size > 200) {
+    pruneRequestBuckets();
+  }
+  if (callDayBuckets.size > 200) {
+    pruneCallDayBuckets();
+  }
+
   const key = `${req.path}:${getClientKey(req)}`;
   const existing = requestBuckets.get(key);
   const bucket = !existing || now - existing.windowStart >= RATE_LIMIT_WINDOW_MS
@@ -680,6 +742,134 @@ Provide a constructive, compassionate assessment structured strictly with these 
       ok: true,
       analysis: "1. 🌡️ **Emotional Climate & Needs**: The dialogue suggests emotional vulnerability and a need for validation.\n\n2. 🧩 **Cognitive Distortions & Blindspots**: Potential patterns include all-or-nothing thinking and self-criticism.\n\n3. 💡 **CBT Psychological Audit & Improvement**: The response could benefit from active listening and non-judgmental acceptance before advice.\n\n4. 🌱 **Recommended Reframing & Grounding Action**: Pause, name the feeling, and separate observable facts from self-critical interpretations.",
     });
+  }
+});
+
+router.post("/call/create", rateLimit, async (req, res) => {
+  // Explicit informed consent is mandatory before any real phone call
+  if (req.body?.consent !== true) {
+    return res.status(400).json({ error: "Explicit consent is required before requesting a support call." });
+  }
+
+  const rawPhone = typeof req.body?.phone === "string" ? req.body.phone : "";
+  const phone = normalizeCallPhone(rawPhone);
+  if (!isValidCallPhone(phone)) {
+    return res.status(400).json({ error: "A valid E.164 phone number (for example +12125550123) is required." });
+  }
+
+  // Tencent Cloud Captcha (防水墙) verification
+  const captchaTicket = req.body?.captchaTicket || req.headers["x-captcha-ticket"];
+  const captchaRandstr = req.body?.captchaRandstr || req.headers["x-captcha-randstr"];
+  const captchaResult = await verifyTencentCaptcha({
+    ticket: captchaTicket,
+    randstr: captchaRandstr,
+    userIp: getClientKey(req),
+  });
+  if (!captchaResult.ok) {
+    return res.status(403).json({ error: captchaResult.error || "Captcha verification failed." });
+  }
+
+  const apiKey = process.env.CALLE_API_KEY?.trim();
+  if (!apiKey) {
+    return res.status(503).json({ error: "Voice check-in calls are not configured yet." });
+  }
+
+  // Dedicated per-IP daily quota and global in-flight cap
+  pruneActiveCalls();
+  const clientKey = getClientKey(req);
+  const today = new Date().toISOString().slice(0, 10);
+  const dayKey = `${clientKey}:${today}`;
+  const usedToday = callDayBuckets.get(dayKey) || 0;
+  if (usedToday >= CALL_MAX_PER_DAY_PER_IP) {
+    return res.status(429).json({ error: "Daily voice call limit reached. Please try again tomorrow." });
+  }
+  if (activeCalls.size >= CALL_MAX_ACTIVE) {
+    return res.status(429).json({ error: "A support call is already in progress. Please wait a moment." });
+  }
+
+  // Stable idempotency key per (client, phone, day, attempt): retries collapse, new attempts do not.
+  // The phone number is validated, sent to CALL-E, and then discarded — it is never stored.
+  const idempotencyKey = `mq_${buildStableIdempotencyKey(clientKey, phone, today, String(usedToday))}`;
+
+  try {
+    const { status, data } = await callCalleApi({
+      method: "POST",
+      path: "/v1/calls",
+      apiKey,
+      idempotencyKey,
+      body: {
+        task: buildCallTask(phone),
+        recipients: [{ phones: [phone], region: "US", locale: "en-US" }],
+        result_schema: CALL_RESULT_SCHEMA,
+        metadata: { source: "mindquark-voice-checkin", requested_date: today },
+      },
+    });
+
+    if (status < 200 || status >= 300 || !data?.id) {
+      console.error("CALL-E call creation failed.", status, data?.error?.message || data?.message || "");
+      return res.status(502).json({ error: "The voice check-in call could not be scheduled. Please try again later." });
+    }
+
+    callDayBuckets.set(dayKey, usedToday + 1);
+    activeCalls.set(data.id, { clientKey, createdAt: Date.now() });
+
+    return res.json({ ok: true, callId: data.id, status: data.status || "queued" });
+  } catch (error) {
+    console.error("CALL-E call creation error.", error.message);
+    return res.status(502).json({ error: "The voice check-in call could not be scheduled. Please try again later." });
+  }
+});
+
+router.get("/call/status/:callId", rateLimit, async (req, res) => {
+  const callId = String(req.params?.callId || "");
+  if (!isValidCallId(callId)) {
+    return res.status(400).json({ error: "A valid call id is required." });
+  }
+
+  const apiKey = process.env.CALLE_API_KEY?.trim();
+  if (!apiKey) {
+    return res.status(503).json({ error: "Voice check-in calls are not configured yet." });
+  }
+
+  try {
+    const { status, data } = await callCalleApi({
+      method: "GET",
+      path: `/v1/calls/${encodeURIComponent(callId)}`,
+      apiKey,
+    });
+
+    if (status === 404) {
+      return res.status(404).json({ error: "Voice call not found." });
+    }
+    if (status < 200 || status >= 300 || !data) {
+      console.error("CALL-E status fetch failed.", status);
+      return res.status(502).json({ error: "Voice call status is temporarily unavailable." });
+    }
+
+    const callStatus = String(data.status || "unknown");
+
+    if (isTerminalCallStatus(callStatus)) {
+      // Release the in-flight slot once the call reaches a terminal state
+      activeCalls.delete(callId);
+
+      const result = data.structured_result || data.result || null;
+      const crisis = result?.crisis_signal === "yes";
+
+      return res.json({
+        ok: true,
+        callId,
+        status: callStatus,
+        failureCode: data.failure_code || data.failureCode || null,
+        crisis,
+        result,
+        ...(crisis ? { resources: CALL_CRISIS_RESOURCES } : {}),
+      });
+    }
+
+    return res.json({ ok: true, callId, status: callStatus, crisis: false, result: null });
+  } catch (error) {
+    console.error("CALL-E status fetch error.", error.message);
+    return res.status(502).json({ error: "Voice call status is temporarily unavailable." });
   }
 });
 

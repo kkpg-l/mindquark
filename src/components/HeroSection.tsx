@@ -179,9 +179,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             <div className="size-11 rounded-2xl bg-teal-500/15 text-teal-600 dark:text-teal-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-xs">
               <HeartHandshake className="size-6" />
             </div>
-            <h3 className="font-normal text-base text-foreground mb-1.5">Gentle Perspective Choice</h3>
+            <h3 className="font-normal text-base text-foreground mb-1.5">Gentle Perspectives & Real-Time Call</h3>
             <p className="text-xs sm:text-sm text-muted-foreground font-light leading-relaxed">
-              Choose between Maya (nurturing & intuitive) and Liam (grounded & steady) to suit your personal comfort.
+              Connect with Maya or Liam via mindful chat, voice dictation, or a gentle real-time AI phone check-in call.
             </p>
           </Card>
         </div>
