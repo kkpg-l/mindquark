@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { sendChatMessage } from "../src/services/api";
+import {
+  sendChatMessage,
+  requestGuideReframe,
+  requestGuideAssessment,
+} from "../src/services/api";
 
 describe("API Service Suite", () => {
   beforeEach(() => {
@@ -41,5 +45,57 @@ describe("API Service Suite", () => {
     expect(res.cbtCategory).toBe("Crisis Safety");
     expect(res.reply).toContain("988");
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("Guide API crisis interception", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("requestGuideReframe throws CRISIS locally for high-risk input without network", async () => {
+    const fetchSpy = vi.spyOn(global, "fetch");
+
+    await expect(
+      requestGuideReframe({
+        situation: "I failed my exam today",
+        automaticThought: "I want to die",
+      })
+    ).rejects.toThrow("CRISIS");
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("requestGuideReframe propagates backend crisis responses instead of using the generic fallback", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        reply: "Your safety matters most right now.",
+        isCrisis: true,
+        resources: [],
+      }),
+    } as Response);
+
+    await expect(
+      requestGuideReframe({
+        situation: "A normal situation",
+        automaticThought: "Everything feels ruined",
+      })
+    ).rejects.toThrow("CRISIS");
+  });
+
+  it("requestGuideAssessment throws CRISIS for high-risk history without network", async () => {
+    const fetchSpy = vi.spyOn(global, "fetch");
+
+    await expect(requestGuideAssessment(["I want to die"], "")).rejects.toThrow("CRISIS");
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("requestGuideAssessment degrades gracefully on network failure", async () => {
+    vi.spyOn(global, "fetch").mockRejectedValueOnce(new Error("Network offline"));
+
+    const res = await requestGuideAssessment(["I feel fine today"], "");
+    expect(res.ok).toBe(false);
+    expect(res.semanticScores).toBeNull();
+    expect(res.evidence).toEqual([]);
   });
 });

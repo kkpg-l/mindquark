@@ -252,6 +252,9 @@ export async function requestGuideAssessment(
   quizContext: string
 ): Promise<GuideAssessResponse> {
   const filtered = messages.filter((m) => typeof m === "string" && m.trim()).slice(-12);
+  if (isHighRiskText([...filtered, quizContext].join("\n"))) {
+    throw new Error("CRISIS");
+  }
   try {
     const captchaData = await getCaptchaVerification();
     const response = await fetch(`${API_BASE_URL}/api/guide/assess`, {
@@ -267,6 +270,7 @@ export async function requestGuideAssessment(
     });
     if (response.ok) {
       const data = await response.json();
+      if (data.isCrisis) throw new Error("CRISIS");
       return {
         ok: true,
         semanticScores: data.semanticScores ?? null,
@@ -276,6 +280,7 @@ export async function requestGuideAssessment(
       };
     }
   } catch (error) {
+    if ((error as Error)?.message === "CRISIS") throw error;
     console.warn("Guide assessment fell back to deterministic mode:", error);
   }
   return { ok: false, semanticScores: null, evidence: [], narrative: null, recommendations: [] };
@@ -327,6 +332,7 @@ export async function requestGuideReframe(
     });
     if (response.ok) {
       const data = await response.json();
+      if (data.isCrisis) throw new Error("CRISIS");
       if (data.distortion && data.reframe) {
         return {
           ok: true,
@@ -337,6 +343,7 @@ export async function requestGuideReframe(
       }
     }
   } catch (error) {
+    if ((error as Error)?.message === "CRISIS") throw error;
     console.warn("Guide reframe fell back to local copy:", error);
   }
 

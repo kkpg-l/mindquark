@@ -21,6 +21,8 @@ import {
   type AttentionDriftWarning,
 } from "@/lib/cognitiveEngine";
 import { saveCognitiveSnapshot, getCognitiveSnapshots } from "@/lib/guideStore";
+import { getCrisisFallback } from "@/lib/safety";
+import { CrisisNotice } from "@/components/guide/CrisisNotice";
 import { requestGuideAssessment, type GuideAssessResponse } from "@/services/api";
 
 type AssessmentPhase = "landing" | "quiz" | "analyzing" | "report";
@@ -40,6 +42,7 @@ export const AssessmentFlow: React.FC<{
   const containerRef = useRef<HTMLDivElement>(null);
   const [phase, setPhase] = useState<AssessmentPhase>("landing");
   const [report, setReport] = useState<AssessmentReport | null>(null);
+  const [crisisNotice, setCrisisNotice] = useState<string | null>(null);
 
   const localTexts = phase === "landing" ? getAssessmentTexts(24) : [];
   const localMoods = phase === "landing" ? getRecentMoodEntries(30) : [];
@@ -73,10 +76,22 @@ export const AssessmentFlow: React.FC<{
         }. Wants: ${answers.openText || "not specified"}.`
       : "";
 
-    const apiResult =
-      texts.length > 0 || quizContext
-        ? await requestGuideAssessment(texts, quizContext)
-        : { ok: false, semanticScores: null, evidence: [], narrative: null, recommendations: [] };
+    let apiResult: GuideAssessResponse = {
+      ok: false,
+      semanticScores: null,
+      evidence: [],
+      narrative: null,
+      recommendations: [],
+    };
+    if (texts.length > 0 || quizContext) {
+      try {
+        apiResult = await requestGuideAssessment(texts, quizContext);
+      } catch (err) {
+        if ((err as Error)?.message === "CRISIS") {
+          setCrisisNotice(getCrisisFallback(quizContext || texts[texts.length - 1] || ""));
+        }
+      }
+    }
 
     const quizPriors = answers
       ? {
@@ -108,6 +123,7 @@ export const AssessmentFlow: React.FC<{
 
   const handleRestart = () => {
     setReport(null);
+    setCrisisNotice(null);
     setPhase("landing");
   };
 
@@ -220,6 +236,8 @@ export const AssessmentFlow: React.FC<{
               Guide home
             </Button>
           </div>
+
+          {crisisNotice && <CrisisNotice text={crisisNotice} />}
 
           <CognitiveReport
             snapshot={report.snapshot}
