@@ -5,6 +5,7 @@ const https = require("node:https");
 const crypto = require("node:crypto");
 const WebSocket = require("ws");
 const { assessSafety, buildCrisisResponse } = require("./safety");
+const { extractJsonObject, sanitizeSemanticScores, sanitizeReframeResult } = require("./guideUtils");
 const {
   CALL_RESULT_SCHEMA,
   buildCallTask,
@@ -64,6 +65,10 @@ const MAX_TRANSCRIPT_LENGTH = 6_000;
 const MAX_TTS_LENGTH = 1_000;
 const MAX_HISTORY_ITEMS = 8;
 const MAX_HISTORY_MESSAGE_LENGTH = 1_200;
+const MAX_GUIDE_MESSAGES = 12;
+const MAX_GUIDE_MESSAGE_LENGTH = 1_200;
+const MAX_GUIDE_SESSION_LENGTH = 2_000;
+const MAX_GUIDE_THOUGHT_LENGTH = 3_000;
 const requestBuckets = new Map();
 
 // CALL-E voice check-in call guards (real phone calls cost real money)
@@ -332,11 +337,11 @@ function cleanModelReply(raw) {
   return cleaned;
 }
 
-function requestChatCompletion({ hostname, path, authorization, model, messages, maxTokens }) {
+function requestChatCompletion({ hostname, path, authorization, model, messages, maxTokens, temperature = 0.7 }) {
   const postData = JSON.stringify({
     model,
     messages,
-    temperature: 0.7,
+    temperature,
     max_tokens: maxTokens,
   });
 
@@ -388,7 +393,7 @@ const FALLBACK_MODELS = [
   "google/gemma-4-26b-a4b-it:free",
 ];
 
-async function callPrimaryModel(messages, maxTokens = 600) {
+async function callPrimaryModel(messages, maxTokens = 600, temperature) {
   const configuredModel = process.env.PRIMARY_MODEL?.trim() || "minimax/minimax-m2.7:free";
   const apiKey = requireConfigured("OPENROUTER_API_KEY");
   const modelsToTry = [configuredModel, ...FALLBACK_MODELS.filter((m) => m !== configuredModel)];
@@ -403,6 +408,7 @@ async function callPrimaryModel(messages, maxTokens = 600) {
         model,
         messages,
         maxTokens,
+        temperature,
       });
     } catch (err) {
       lastError = err;
@@ -412,7 +418,7 @@ async function callPrimaryModel(messages, maxTokens = 600) {
   throw lastError || new Error("All primary models failed");
 }
 
-function callBackupModel(messages, maxTokens = 600) {
+function callBackupModel(messages, maxTokens = 600, temperature) {
   return requestChatCompletion({
     hostname: "maas-coding-api.cn-huabei-1.xf-yun.com",
     path: "/v2/chat/completions",
@@ -420,16 +426,17 @@ function callBackupModel(messages, maxTokens = 600) {
     model: process.env.BACKUP_MODEL?.trim() || "astron-code-latest",
     messages,
     maxTokens,
+    temperature,
   });
 }
 
-async function callLlmWithFailover(messages, maxTokens = 600) {
+async function callLlmWithFailover(messages, maxTokens = 600, temperature) {
   try {
-    return await callPrimaryModel(messages, maxTokens);
+    return await callPrimaryModel(messages, maxTokens, temperature);
   } catch (primaryError) {
     console.warn("Primary model failed; trying the configured backup model.", primaryError.message);
     try {
-      return await callBackupModel(messages, maxTokens);
+      return await callBackupModel(messages, maxTokens, temperature);
     } catch (backupError) {
       console.error("All configured model providers failed.", backupError.message);
       throw backupError;
@@ -693,6 +700,209 @@ Balanced Perspective: Provide a compassionate, realistic, evidence-based reframe
       reframed: `💡【CBT Cognitive Reframing】\nOriginal Thought: "${thoughtResult.text}"\nBalanced Perspective: Feelings are valid signals, but they are not immutable facts. You can move forward one small, compassionate step at a time.`,
     });
   }
+});
+
+router.post("/guide/assess", rateLimit, async (req, res) => {
+  const rawMessages = Array.isArray(req.body?.messages) ? req.body.messages : [];
+  const messages = rawMessages
+    .filter((m) => typeof m === "string")
+    .map((m) => m.trim().slice(0, MAX_GUIDE_MESSAGE_LENGTH))
+    .filter(Boolean)
+    .slice(-MAX_GUIDE_MESSAGES);
+  const quizContext = typeof req.body?.quizContext === "string"
+    ? req.body.quizContext.trim().slice(0, 600)
+    : "";
+
+  if (messages.length === 0 && !quizContext) {
+    return res.status(400).json({ error: "No assessment input provided." });
+  }
+
+  const combined = [...messages, quizContext].join("\n");
+  const crisisResponse = getCrisisResponse(combined);
+  if (crisisResponse) return res.json(crisisResponse);
+
+  const captchaTicket = req.body?.captchaTicket || req.headers["x-captcha-ticket"];
+  const captchaRandstr = req.body?.captchaRandstr || req.headers["x-captcha-randstr"];
+  const captchaResult = await verifyTencentCaptcha({
+    ticket: captchaTicket,
+    randstr: captchaRandstr,
+    userIp: getClientKey(req),
+  });
+  if (!captchaResult.ok) {
+    return res.status(403).json({ error: captchaResult.error || "Captcha verification failed." });
+  }
+
+  // ① Semantic scoring — any failure degrades to null (frontend falls back to deterministic mode).
+  let semanticScores = null;
+  let evidence = [];
+  if (messages.length > 0) {
+    try {
+      const raw = await callLlmWithFailover(
+        [
+          {
+            role: "system",
+            content:
+              "You are a careful psychological text analyst. You never diagnose. Return ONLY valid JSON with no markdown fences.",
+          },
+          {
+            role: "user",
+            content: `Analyze these journal/chat excerpts from one person. Rate how strongly each thinking pattern appears, from 0.0 (absent) to 1.0 (very strong):
+- perfectionism: rigid all-or-nothing standards, fear of mistakes
+- avoidance: evading tasks, people, or feelings
+- rumination: repetitive, stuck thinking loops
+- catastrophizing: expecting worst-case outcomes
+- selfCriticism: harsh self-judgment and self-blame
+
+Return ONLY this JSON shape:
+{"patterns": {"perfectionism": 0.0, "avoidance": 0.0, "rumination": 0.0, "catastrophizing": 0.0, "selfCriticism": 0.0}, "evidence": ["short quote", "short quote"]}
+evidence: up to 3 short quotes (max 20 words each) supporting the two highest scores.
+
+Text:
+"""
+${messages.join("\n---\n")}
+"""`,
+          },
+        ],
+        300,
+        0.2
+      );
+      const sanitized = sanitizeSemanticScores(extractJsonObject(raw));
+      if (sanitized) {
+        semanticScores = sanitized.scores;
+        evidence = sanitized.evidence;
+      }
+    } catch (error) {
+      console.warn("Guide semantic scoring failed; falling back to deterministic mode.", error.message);
+    }
+  }
+
+  // ② Narrative generation — the LLM never participates in scoring.
+  let narrative = null;
+  let recommendations = [];
+  try {
+    const scoreLine = semanticScores
+      ? `Pattern scores (0-1): perfectionism ${semanticScores.perfectionism}, avoidance ${semanticScores.avoidance}, rumination ${semanticScores.rumination}, catastrophizing ${semanticScores.catastrophizing}, selfCriticism ${semanticScores.selfCriticism}.`
+      : "Pattern scores unavailable; rely on the quiz context.";
+    const raw = await callLlmWithFailover(
+      [
+        {
+          role: "system",
+          content:
+            "You are a warm, gentle wellbeing guide. Non-diagnostic, non-clinical, strengths-acknowledging. Return ONLY valid JSON with no markdown fences.",
+        },
+        {
+          role: "user",
+          content: `${scoreLine}
+${quizContext ? `Quiz context: ${quizContext}\n` : ""}Write:
+1. "narrative": 2-3 sentences in second person, warm and non-judgmental, describing these as tendencies (never diagnoses or labels), acknowledging one strength.
+2. "recommendations": exactly 3 short actionable suggestions (max 15 words each) matched to the strongest patterns.
+
+Return ONLY this JSON shape: {"narrative": "...", "recommendations": ["...", "...", "..."]}`,
+        },
+      ],
+      400
+    );
+    const parsed = extractJsonObject(raw);
+    if (parsed && typeof parsed.narrative === "string" && parsed.narrative.trim()) {
+      narrative = parsed.narrative.trim().slice(0, 600);
+    }
+    if (Array.isArray(parsed?.recommendations)) {
+      recommendations = parsed.recommendations
+        .filter((r) => typeof r === "string" && r.trim())
+        .map((r) => r.trim().slice(0, 140))
+        .slice(0, 3);
+    }
+  } catch (error) {
+    console.warn("Guide narrative generation failed; report will use local copy.", error.message);
+  }
+
+  res.json({ ok: true, semanticScores, evidence, narrative, recommendations });
+});
+
+router.post("/guide/reframe", rateLimit, async (req, res) => {
+  const session = req.body?.session && typeof req.body.session === "object" ? req.body.session : null;
+  if (!session) {
+    return res.status(400).json({ error: "A reframe session payload is required." });
+  }
+
+  const situationResult = limitText(session.situation, MAX_GUIDE_SESSION_LENGTH, "Situation");
+  if (situationResult.error) return res.status(400).json({ error: situationResult.error });
+
+  const thoughtResult = limitText(session.automaticThought, MAX_GUIDE_THOUGHT_LENGTH, "Automatic thought");
+  if (thoughtResult.error) return res.status(400).json({ error: thoughtResult.error });
+
+  const evidenceFor = typeof session.evidenceFor === "string" ? session.evidenceFor.trim().slice(0, 1_500) : "";
+  const evidenceAgainst = typeof session.evidenceAgainst === "string" ? session.evidenceAgainst.trim().slice(0, 1_500) : "";
+  const emotionLabel = typeof session.emotionLabel === "string" ? session.emotionLabel.slice(0, 60) : "";
+  const emotionIntensity = Number(session.emotionIntensity);
+
+  const combined = [situationResult.text, thoughtResult.text, evidenceFor, evidenceAgainst].join("\n");
+  const crisisResponse = getCrisisResponse(combined);
+  if (crisisResponse) return res.json(crisisResponse);
+
+  const captchaTicket = req.body?.captchaTicket || req.headers["x-captcha-ticket"];
+  const captchaRandstr = req.body?.captchaRandstr || req.headers["x-captcha-randstr"];
+  const captchaResult = await verifyTencentCaptcha({
+    ticket: captchaTicket,
+    randstr: captchaRandstr,
+    userIp: getClientKey(req),
+  });
+  if (!captchaResult.ok) {
+    return res.status(403).json({ error: captchaResult.error || "Captcha verification failed." });
+  }
+
+  const prompt = `A person is completing a CBT thought record. Help them with the final two steps.
+
+Situation (what happened):
+"${situationResult.text}"
+
+Automatic thought:
+"${thoughtResult.text}"
+
+Emotion: ${emotionLabel || "unspecified"}${Number.isFinite(emotionIntensity) ? ` (intensity ${Math.min(10, Math.max(1, emotionIntensity))}/10)` : ""}
+Evidence supporting the thought: ${evidenceFor || "(none given yet)"}
+Evidence against the thought: ${evidenceAgainst || "(none given yet)"}
+
+Tasks:
+1. Identify the single best-fitting cognitive distortion type, choosing exactly one of: all-or-nothing, catastrophizing, overgeneralization, mind-reading, fortune-telling, emotional-reasoning, should-statements, labeling, discounting-positive, personalization, blame, filtering.
+2. Explain that distortion in ONE gentle, non-judgmental sentence (second person).
+3. Write a balanced thought (2-3 sentences): compassionate, realistic, grounded in the evidence above.
+4. Suggest ONE small, concrete step they can take today.
+
+Return ONLY valid JSON, no markdown:
+{"distortion": {"type": "...", "explanation": "..."}, "reframe": {"balancedThought": "...", "actionableStep": "..."}}`;
+
+  try {
+    const raw = await callLlmWithFailover(
+      [
+        {
+          role: "system",
+          content: "You are a CBT-informed guide: warm, concise, non-diagnostic. Output only valid JSON.",
+        },
+        { role: "user", content: prompt },
+      ],
+      500
+    );
+    const result = sanitizeReframeResult(extractJsonObject(raw));
+    if (result) {
+      return res.json({ ok: true, ...result });
+    }
+    console.warn("Guide reframe returned unparseable JSON; using fallback.");
+  } catch (error) {
+    console.error("Guide reframe generation failed.", error.message);
+  }
+
+  res.json({
+    ok: true,
+    distortion: {
+      type: "all-or-nothing",
+      explanation: "This thought leans toward an all-or-nothing reading of the situation.",
+    },
+    reframe: {
+      balancedThought: `"${thoughtResult.text}" is a real feeling, and feelings are valid signals — but they are not permanent facts. A more balanced view: this moment is difficult, not the whole story, and you have handled difficult moments before.`,
+      actionableStep: "Write down one small thing that went okay today, however minor.",
+    },
+  });
 });
 
 router.post("/analyze", rateLimit, async (req, res) => {

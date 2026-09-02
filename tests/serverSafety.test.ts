@@ -33,10 +33,12 @@ describe("server safety gateway", () => {
   });
 
   it("applies the same safety gateway before chat, reframe, and analyze generation", () => {
-    expect((apiSource.match(/getCrisisResponse\(/g) || []).length).toBeGreaterThanOrEqual(4);
+    expect((apiSource.match(/getCrisisResponse\(/g) || []).length).toBeGreaterThanOrEqual(6);
     expect(apiSource).toContain("router.post(\"/chat\"");
     expect(apiSource).toContain("router.post(\"/reframe\"");
     expect(apiSource).toContain("router.post(\"/analyze\"");
+    expect(apiSource).toContain("router.post(\"/guide/assess\"");
+    expect(apiSource).toContain("router.post(\"/guide/reframe\"");
   });
 
   it("enforces anti-bot and scraper protection middleware", () => {
