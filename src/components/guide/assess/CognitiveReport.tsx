@@ -39,6 +39,12 @@ const TRAIT_EXPLANATIONS: Record<keyof TraitScores, string> = {
   rumination: "How strongly repetitive, stuck thinking loops appear in your words.",
 };
 
+const TRAIT_DISTORTION_MAP: Record<keyof TraitScores, string> = {
+  perfectionism: "should-statements",
+  avoidance: "fortune-telling",
+  rumination: "overgeneralization",
+};
+
 const MODULE_CTAS = [
   {
     prefValue: 1,
@@ -285,7 +291,12 @@ export const CognitiveReport: React.FC<CognitiveReportProps> = ({
 
       <div className="flex flex-col sm:flex-row gap-2.5">
         <Button
-          onClick={() => onStartReframe({})}
+          onClick={() => {
+            const strongestTrait = (Object.keys(snapshot.traits) as Array<keyof TraitScores>).reduce(
+              (a, b) => (snapshot.traits[b] > snapshot.traits[a] ? b : a)
+            );
+            onStartReframe({ distortionType: TRAIT_DISTORTION_MAP[strongestTrait] });
+          }}
           className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white h-10 gap-1.5"
         >
           <HeartPulse className="size-4" />

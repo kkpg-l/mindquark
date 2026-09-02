@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Compass } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -35,11 +35,7 @@ export const ReframeWizard: React.FC<{
   const [stepIndex, setStepIndex] = useState(0);
   const [session, setSession] = useState<ReframeSession>(() =>
     preset
-      ? {
-          ...createEmptyReframeSession(),
-          situation: preset.situation ?? "",
-          confirmedDistortion: preset.distortionType ?? undefined,
-        }
+      ? { ...createEmptyReframeSession(), situation: preset.situation ?? "" }
       : loadReframeDraft() ?? createEmptyReframeSession()
   );
   const [draftRestored] = useState(() => !preset && Boolean(loadReframeDraft()));
@@ -203,6 +199,26 @@ export const ReframeWizard: React.FC<{
         <p className="text-[11px] text-muted-foreground font-lato-light-italic">
           Draft restored — pick up right where you left off.
         </p>
+      )}
+
+      {preset?.distortionType && !session.confirmedDistortion && (
+        <div className="flex items-center gap-2.5 rounded-2xl border border-teal-500/25 bg-teal-500/5 px-4 py-3">
+          <Compass className="size-4 shrink-0 text-teal-500/80" />
+          <p className="flex-1 text-xs text-muted-foreground leading-relaxed">
+            From your assessment — suggested focus:{" "}
+            <span className="font-semibold capitalize text-foreground">
+              {preset.distortionType.replace(/-/g, " ")}
+            </span>
+          </p>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => update({ confirmedDistortion: preset.distortionType })}
+            className="shrink-0 rounded-full h-7 text-[11px] border-teal-500/30 text-teal-700 dark:text-teal-300 hover:bg-teal-500/10"
+          >
+            Adopt
+          </Button>
+        </div>
       )}
 
       {crisisText && <CrisisNotice text={crisisText} onDismiss={() => setCrisisText(null)} />}
