@@ -144,13 +144,24 @@ describe("Voice Call API Service Suite", () => {
   });
 
   it("callCalleApi handles custom base URLs gracefully", async () => {
-    // Verifies that callCalleApi parses HTTP/HTTPS URLs properly without crashing
-    const promise = calle.callCalleApi({
-      method: "GET",
-      path: "/v1/test",
-      apiKey: "test_key",
-      timeoutMs: 100,
-    });
-    await expect(promise).rejects.toThrow();
+    // Point at an unroutable local port so the request fails at the transport layer.
+    // Keeps the test hermetic instead of depending on real network reachability.
+    const previous = process.env.CALLE_BASE_URL;
+    process.env.CALLE_BASE_URL = "http://127.0.0.1:1";
+    try {
+      const promise = calle.callCalleApi({
+        method: "GET",
+        path: "/v1/test",
+        apiKey: "test_key",
+        timeoutMs: 500,
+      });
+      await expect(promise).rejects.toThrow();
+    } finally {
+      if (previous === undefined) {
+        delete process.env.CALLE_BASE_URL;
+      } else {
+        process.env.CALLE_BASE_URL = previous;
+      }
+    }
   });
 });
