@@ -1,13 +1,14 @@
 import React, { useRef, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
-import { ChevronLeft, ClipboardList, Database, ShieldCheck, Wind, HeartPulse } from "lucide-react";
+import { ChevronLeft, ClipboardList, Database, ShieldCheck } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ThinkingOrb } from "thinking-orbs";
 import type { NavTab } from "@/components/Navbar";
 import type { ReframePreset } from "@/components/GuideSection";
 import { IntakeQuiz, type QuizAnswers } from "./IntakeQuiz";
+import { CognitiveReport } from "./CognitiveReport";
 import { getAssessmentTexts, getRecentMoodEntries } from "@/lib/activityLog";
 import {
   extractFeatures,
@@ -15,20 +16,21 @@ import {
   calculateTraitScores,
   calculateStateScores,
   buildAttentionMap,
+  detectAttentionDrift,
   type CognitiveSnapshot,
+  type AttentionDriftWarning,
 } from "@/lib/cognitiveEngine";
-import { saveCognitiveSnapshot } from "@/lib/guideStore";
+import { saveCognitiveSnapshot, getCognitiveSnapshots } from "@/lib/guideStore";
 import { requestGuideAssessment, type GuideAssessResponse } from "@/services/api";
-import { ATTENTION_AREA_LABELS } from "./quizQuestions";
 
 type AssessmentPhase = "landing" | "quiz" | "analyzing" | "report";
 
 interface AssessmentReport {
   snapshot: CognitiveSnapshot;
   apiResult: GuideAssessResponse;
+  driftWarnings: AttentionDriftWarning[];
+  supportPreference?: number;
 }
-
-const percent = (value: number) => `${Math.round(value * 100)}%`;
 
 export const AssessmentFlow: React.FC<{
   onBack: () => void;
@@ -96,7 +98,11 @@ export const AssessmentFlow: React.FC<{
       texts.length > 0 && answers ? "quiz+passive" : texts.length > 0 ? "passive-only" : "quiz-only";
 
     const snapshot = saveCognitiveSnapshot({ traits, states, attention, source });
-    setReport({ snapshot, apiResult });
+    const history = getCognitiveSnapshots()
+      .filter((s) => s.id !== snapshot.id)
+      .map((s) => s.attention);
+    const driftWarnings = detectAttentionDrift(attention, history);
+    setReport({ snapshot, apiResult, driftWarnings, supportPreference: answers?.supportPreference });
     setPhase("report");
   };
 
@@ -215,148 +221,18 @@ export const AssessmentFlow: React.FC<{
             </Button>
           </div>
 
-          <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-xs text-amber-700 dark:text-amber-300">
-            A self-awareness companion — not a diagnosis or medical advice.
-          </div>
-
-          {report.apiResult.narrative && (
-            <Card className="rounded-3xl border border-emerald-500/20 bg-card/85 dark:bg-card/70 shadow-md shadow-emerald-500/5 backdrop-blur-md p-6 space-y-3">
-              <h3 className="font-bold text-base text-foreground">What we noticed</h3>
-              <p className="text-sm text-foreground/85 leading-relaxed">{report.apiResult.narrative}</p>
-              {report.apiResult.evidence.length > 0 && (
-                <div className="space-y-1 border-t border-emerald-500/10 pt-3">
-                  <p className="text-[11px] font-semibold text-muted-foreground">From your own words:</p>
-                  {report.apiResult.evidence.map((quote, i) => (
-                    <p key={i} className="text-[11px] text-muted-foreground italic">
-                      &ldquo;{quote}&rdquo;
-                    </p>
-                  ))}
-                </div>
-              )}
-            </Card>
-          )}
-
-          <Card className="rounded-3xl border border-emerald-500/20 bg-card/85 dark:bg-card/70 shadow-md shadow-emerald-500/5 backdrop-blur-md p-6 space-y-4">
-            <h3 className="font-bold text-base text-foreground">Thinking tendencies</h3>
-            {(
-              [
-                ["Perfectionism", report.snapshot.traits.perfectionism],
-                ["Avoidance", report.snapshot.traits.avoidance],
-                ["Rumination", report.snapshot.traits.rumination],
-              ] as const
-            ).map(([label, value]) => (
-              <div key={label} className="space-y-1.5">
-                <div className="flex justify-between text-xs">
-                  <span className="text-foreground/85 font-medium">{label}</span>
-                  <span className="text-muted-foreground font-mono">{percent(value)}</span>
-                </div>
-                <div className="h-2.5 rounded-full bg-muted overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-teal-500 to-emerald-500"
-                    style={{ width: percent(value) }}
-                  />
-                </div>
-              </div>
-            ))}
-          </Card>
-
-          <Card className="rounded-3xl border border-emerald-500/20 bg-card/85 dark:bg-card/70 shadow-md shadow-emerald-500/5 backdrop-blur-md p-6 space-y-4">
-            <h3 className="font-bold text-base text-foreground">Current energy states</h3>
-            {(
-              [
-                ["Burnout load", report.snapshot.states.burnout, false],
-                ["Motivation", report.snapshot.states.motivation, true],
-                ["Stress adaptation", report.snapshot.states.stressAdaptation, true],
-              ] as const
-            ).map(([label, value, positive]) => (
-              <div key={label} className="space-y-1.5">
-                <div className="flex justify-between text-xs">
-                  <span className="text-foreground/85 font-medium">{label}</span>
-                  <span className="text-muted-foreground font-mono">{percent(value)}</span>
-                </div>
-                <div className="h-2.5 rounded-full bg-muted overflow-hidden">
-                  <div
-                    className={`h-full rounded-full ${
-                      positive
-                        ? value >= 0.5
-                          ? "bg-emerald-500"
-                          : "bg-amber-500"
-                        : value >= 0.5
-                          ? "bg-rose-500"
-                          : "bg-emerald-500"
-                    }`}
-                    style={{ width: percent(value) }}
-                  />
-                </div>
-              </div>
-            ))}
-          </Card>
-
-          <Card className="rounded-3xl border border-emerald-500/20 bg-card/85 dark:bg-card/70 shadow-md shadow-emerald-500/5 backdrop-blur-md p-6 space-y-4">
-            <h3 className="font-bold text-base text-foreground">Where your attention lives</h3>
-            {(
-              Object.entries(report.snapshot.attention) as [
-                keyof typeof ATTENTION_AREA_LABELS,
-                number,
-              ][]
-            ).map(([area, value]) => (
-              <div key={area} className="space-y-1.5">
-                <div className="flex justify-between text-xs">
-                  <span className="text-foreground/85 font-medium">{ATTENTION_AREA_LABELS[area]}</span>
-                  <span className="text-muted-foreground font-mono">{percent(value)}</span>
-                </div>
-                <div className="h-2 rounded-full bg-muted overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-emerald-500/70"
-                    style={{ width: percent(value) }}
-                  />
-                </div>
-              </div>
-            ))}
-            <p className="text-[11px] text-muted-foreground border-t border-emerald-500/10 pt-3">
-              Blended from {report.snapshot.source} signals · AI semantic layer{" "}
-              {report.apiResult.semanticScores ? "active" : "offline — deterministic mode"}
-            </p>
-          </Card>
-
-          {report.apiResult.recommendations.length > 0 && (
-            <Card className="rounded-3xl border border-emerald-500/20 bg-card/85 dark:bg-card/70 shadow-md shadow-emerald-500/5 backdrop-blur-md p-6 space-y-3">
-              <h3 className="font-bold text-base text-foreground">Gentle suggestions</h3>
-              <ul className="space-y-2.5">
-                {report.apiResult.recommendations.map((rec, i) => (
-                  <li key={i} className="flex gap-2 text-sm text-foreground/85 leading-relaxed">
-                    <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-emerald-500" />
-                    {rec}
-                  </li>
-                ))}
-              </ul>
-            </Card>
-          )}
-
-          <div className="flex flex-col sm:flex-row gap-2.5">
-            <Button
-              onClick={() => onStartReframe({})}
-              className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white h-10 gap-1.5"
-            >
-              <HeartPulse className="size-4" />
-              Reframe a thought
-            </Button>
-            <Button
-              onClick={() => onNavigate("breathe")}
-              className="flex-1 rounded-xl border border-teal-500/30 text-teal-700 dark:text-teal-300 hover:bg-teal-500/10 h-10 gap-1.5"
-              variant="outline"
-            >
-              <Wind className="size-4" />
-              Breathe with me
-            </Button>
-          </div>
-          <Button
-            variant="ghost"
-            onClick={handleRestart}
-            className="w-full rounded-xl text-muted-foreground hover:text-foreground h-9"
-          >
-            Retake assessment
-          </Button>
+          <CognitiveReport
+            snapshot={report.snapshot}
+            narrative={report.apiResult.narrative}
+            recommendations={report.apiResult.recommendations}
+            evidence={report.apiResult.evidence}
+            semanticActive={Boolean(report.apiResult.semanticScores)}
+            driftWarnings={report.driftWarnings}
+            supportPreference={report.supportPreference}
+            onStartReframe={onStartReframe}
+            onNavigate={onNavigate}
+            onRestart={handleRestart}
+          />
         </div>
       )}
     </div>
