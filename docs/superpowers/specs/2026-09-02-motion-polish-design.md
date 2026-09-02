@@ -51,13 +51,14 @@ MindQuark Sanctuary 的页面视觉已达标，但组件交互质感存在三类
 | fast | 150ms (`duration-150`) | hover 进、关闭、退出 |
 | base | 200ms (`duration-200`) | hover 出、选中、fade |
 | moderate | 300ms (`duration-300`) | 下拉、抽屉、滑动指示器 |
-| slow | 500ms (`duration-500`) | 模态、大位移、绘制 |
+| slow | 500ms (`duration-500`) | 大位移、庆祝类编排；绘制动画为自定义 keyframe 400ms，不占此档 |
 
 ### 3.3 自定义 keyframes / 类（仅 CSS 能力不足时）
 
 - `.animate-pop-in`：选中弹性反馈 — `scale 0.96 → 1.02 → 1`，240ms，`ease-spring-gentle`；用于选择卡片被点击瞬间。
 - `.animate-draw-check`：SVG 勾选 stroke-dashoffset 绘制，400ms；用于保存成功、向导完成。
 - `@keyframes typing-dot-bounce`：聊天打字指示器三点呼吸弹跳（仅当组件为自绘圆点时应用）。
+- `.motion-lift` / `.motion-press` / `.motion-slide`：语义交互类 — 分别封装 hover 浮起（`-translate-y` + shadow）、按压回缩（`active:scale`）、滑动指示器的 transform 过渡参数（duration + ease 统一注入）；§5 中相应组件复用这些类而非各自手写，§7 的 reduce 降级以这三个类为收口点。
 
 ### 3.4 全局三条原则（写入 motion.css 顶部注释 + 实现约束）
 
@@ -75,7 +76,7 @@ MindQuark Sanctuary 的页面视觉已达标，但组件交互质感存在三类
 
 | # | 组件 | 现状 | 优化规格 |
 |---|---|---|---|
-| 1 | `ui/button.tsx` | 仅 default 有 `active:scale-98` | 全变体统一按压 `active:scale-[0.97] duration-100`；hover 统一 `duration-150 ease-out-soft`；focus ring 过渡保留 |
+| 1 | `ui/button.tsx` | 仅 default 有 `active:scale-98` | 全变体统一按压 `active:scale-[0.97] duration-100`；hover 进出不对称：基态 `duration-200` + `hover:duration-150`（进 150 / 出 200），缓动 `ease-out-soft`；focus ring 过渡保留 |
 | 2 | `ui/card.tsx` | 零过渡 | 不强制全局 hover；新增可选 `interactive` prop（hover 浮起 `-translate-y-1` + shadow 过渡 `duration-200 ease-out-soft`），收编 Hero 三卡手写 hover |
 | 3 | `Navbar.tsx` tab | 激活态 class 瞬时跳变 | 滑动指示器：绝对定位 pill 元素，JS 测量激活按钮 offsetLeft/width 设置 transform，CSS `transition-transform duration-300 ease-out-soft` 平滑滑动 |
 | 4 | `Navbar.tsx` 主题切换 | Sun/Moon 瞬时替换 | 图标容器 `rotate` + 交叉淡入：离场图标 `animate-out spin-out fade-out duration-150`，入场 `animate-in spin-in fade-in duration-200`（tw-animate-css 提供） |
