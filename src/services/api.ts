@@ -228,3 +228,128 @@ export async function analyzeDialogue(transcript: string): Promise<string> {
 
   return "1. 🌡️ **Emotional Climate & Needs**: The dialogue reveals subtle emotional vulnerability and a deep need for validation.\n\n2. 🧩 **Cognitive Distortions**: Potential patterns of all-or-nothing thinking and self-criticism.\n\n3. 💡 **CBT Psychological Audit**: The interaction could benefit from deeper active listening and non-judgmental acceptance before jumping to conclusions.\n\n4. 🌱 **Recommended Action**: Take a grounded pause to validate inner feelings and separate facts from emotional assumptions.";
 }
+
+// ── Guided Counseling (Guide module) ──────────────────────────────
+
+export interface GuideSemanticScores {
+  perfectionism: number;
+  avoidance: number;
+  rumination: number;
+  catastrophizing: number;
+  selfCriticism: number;
+}
+
+export interface GuideAssessResponse {
+  ok: boolean;
+  semanticScores: GuideSemanticScores | null;
+  evidence: string[];
+  narrative: string | null;
+  recommendations: string[];
+}
+
+export async function requestGuideAssessment(
+  messages: string[],
+  quizContext: string
+): Promise<GuideAssessResponse> {
+  const filtered = messages.filter((m) => typeof m === "string" && m.trim()).slice(-12);
+  try {
+    const captchaData = await getCaptchaVerification();
+    const response = await fetch(`${API_BASE_URL}/api/guide/assess`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages: filtered,
+        quizContext: quizContext.slice(0, 600),
+        captchaTicket: captchaData?.ticket,
+        captchaRandstr: captchaData?.randstr,
+      }),
+      signal: AbortSignal.timeout(35_000),
+    });
+    if (response.ok) {
+      const data = await response.json();
+      return {
+        ok: true,
+        semanticScores: data.semanticScores ?? null,
+        evidence: Array.isArray(data.evidence) ? data.evidence : [],
+        narrative: typeof data.narrative === "string" ? data.narrative : null,
+        recommendations: Array.isArray(data.recommendations) ? data.recommendations : [],
+      };
+    }
+  } catch (error) {
+    console.warn("Guide assessment fell back to deterministic mode:", error);
+  }
+  return { ok: false, semanticScores: null, evidence: [], narrative: null, recommendations: [] };
+}
+
+export interface GuideReframeSessionPayload {
+  situation: string;
+  automaticThought: string;
+  emotionLabel?: string;
+  emotionIntensity?: number;
+  evidenceFor?: string;
+  evidenceAgainst?: string;
+}
+
+export interface GuideReframeResult {
+  ok: boolean;
+  distortion: { type: string; explanation: string };
+  reframe: { balancedThought: string; actionableStep: string };
+  degraded: boolean;
+}
+
+export async function requestGuideReframe(
+  session: GuideReframeSessionPayload
+): Promise<GuideReframeResult> {
+  const payload = {
+    situation: session.situation.slice(0, 2_000),
+    automaticThought: session.automaticThought.slice(0, 3_000),
+    emotionLabel: session.emotionLabel?.slice(0, 60),
+    emotionIntensity: session.emotionIntensity,
+    evidenceFor: session.evidenceFor?.slice(0, 1_500),
+    evidenceAgainst: session.evidenceAgainst?.slice(0, 1_500),
+  };
+
+  if (isHighRiskText(`${payload.situation} ${payload.automaticThought}`)) {
+    throw new Error("CRISIS");
+  }
+
+  try {
+    const captchaData = await getCaptchaVerification();
+    const response = await fetch(`${API_BASE_URL}/api/guide/reframe`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        session: payload,
+        captchaTicket: captchaData?.ticket,
+        captchaRandstr: captchaData?.randstr,
+      }),
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (response.ok) {
+      const data = await response.json();
+      if (data.distortion && data.reframe) {
+        return {
+          ok: true,
+          distortion: data.distortion,
+          reframe: data.reframe,
+          degraded: false,
+        };
+      }
+    }
+  } catch (error) {
+    console.warn("Guide reframe fell back to local copy:", error);
+  }
+
+  return {
+    ok: true,
+    distortion: {
+      type: "all-or-nothing",
+      explanation: "This thought leans toward an all-or-nothing reading of the situation.",
+    },
+    reframe: {
+      balancedThought: `"${payload.automaticThought}" is a real feeling, and feelings are valid signals — but they are not permanent facts. A more balanced view: this moment is difficult, not the whole story, and you have handled difficult moments before.`,
+      actionableStep: "Write down one small thing that went okay today, however minor.",
+    },
+    degraded: true,
+  };
+}
