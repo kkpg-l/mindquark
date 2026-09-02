@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { Sparkles, MessageCircleHeart, HeartPulse, Wind, Moon, Sun } from "lucide-react";
+import { Sparkles, MessageCircleHeart, HeartPulse, Wind, Moon, Sun, Compass } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getProfileConfig, subscribeProfileConfig, type ProfileConfig } from "@/lib/profileStore";
 
-export type NavTab = "hero" | "chat" | "breathe" | "mood" | "me";
+export type NavTab = "hero" | "chat" | "breathe" | "mood" | "guide" | "me";
 
 interface NavbarProps {
   currentTab: NavTab;
@@ -25,6 +25,7 @@ const NAV_ITEMS: NavItemConfig[] = [
   { id: "chat", label: "Chat", icon: MessageCircleHeart, iconClass: "text-teal-500/90 dark:text-teal-400" },
   { id: "breathe", label: "Breathe", icon: Wind, iconClass: "text-teal-500/90 dark:text-teal-400" },
   { id: "mood", label: "Mood", icon: HeartPulse, iconClass: "text-emerald-500/90 dark:text-emerald-400" },
+  { id: "guide", label: "Guide", icon: Compass, iconClass: "text-emerald-500/90 dark:text-emerald-400" },
   { id: "me", label: "Me" },
 ];
 

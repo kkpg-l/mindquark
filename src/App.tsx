@@ -5,6 +5,7 @@ import { HeroSection } from "@/components/HeroSection";
 import MessageConversation from "@/components/ui/messaging-conversation";
 import { BreatheSection } from "@/components/BreatheSection";
 import { MoodTrackerSection } from "@/components/MoodTrackerSection";
+import { GuideSection } from "@/components/GuideSection";
 import { MeSection } from "@/components/MeSection";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { IntroSplash } from "@/components/IntroSplash";
@@ -124,6 +125,13 @@ export default function App() {
         {currentTab === "mood" && (
           <MoodTrackerSection
             onStartChatWithMood={handleStartChatWithPrompt}
+          />
+        )}
+
+        {currentTab === "guide" && (
+          <GuideSection
+            onStartChatWithPrompt={handleStartChatWithPrompt}
+            onNavigate={handleTabSwitch}
           />
         )}
 
