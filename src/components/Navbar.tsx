@@ -21,10 +21,10 @@ interface NavItemConfig {
 }
 
 const NAV_ITEMS: NavItemConfig[] = [
-  { id: "hero", label: "Explore", icon: Sparkles },
-  { id: "chat", label: "Chat", icon: MessageCircleHeart },
-  { id: "breathe", label: "Breathe", icon: Wind, iconClass: "text-teal-400" },
-  { id: "mood", label: "Mood", icon: HeartPulse, iconClass: "text-emerald-400" },
+  { id: "hero", label: "Explore", icon: Sparkles, iconClass: "text-emerald-500/90 dark:text-emerald-400" },
+  { id: "chat", label: "Chat", icon: MessageCircleHeart, iconClass: "text-teal-500/90 dark:text-teal-400" },
+  { id: "breathe", label: "Breathe", icon: Wind, iconClass: "text-teal-500/90 dark:text-teal-400" },
+  { id: "mood", label: "Mood", icon: HeartPulse, iconClass: "text-emerald-500/90 dark:text-emerald-400" },
   { id: "me", label: "Me" },
 ];
 
@@ -87,7 +87,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                     </AvatarFallback>
                   </Avatar>
                 ) : (
-                  Icon && <Icon className={`size-3.5 ${item.iconClass || ""}`} />
+                  Icon && (
+                    <Icon
+                      className={`size-3.5 transition-colors ${
+                        isActive ? "text-white" : item.iconClass || ""
+                      }`}
+                    />
+                  )
                 )}
                 <span>{item.label}</span>
               </Button>

@@ -7,7 +7,7 @@
 | 验证项 | 结果 |
 |---|---|
 | `npm run typecheck` | 通过 |
-| `npm test` | 4 个测试文件、15 个测试全部通过 |
+| `npm test` | 5 个测试文件、28 个测试全部通过 |
 | `npm run build` | 通过 |
 | `node --check functions/api/index.js` | 通过 |
 | `npm audit --omit=dev` | 0 个已知生产依赖漏洞 |

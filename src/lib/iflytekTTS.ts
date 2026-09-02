@@ -1,4 +1,7 @@
-const API_BASE_URL = "https://kkpg-d2ga363tca9086e3e-1469579803.ap-shanghai.app.tcloudbase.com";
+const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL ||
+  "https://kkpg-d2ga363tca9086e3e-1469579803.ap-shanghai.app.tcloudbase.com"
+).replace(/\/$/, "");
 
 export interface TTSState {
   isPlaying: boolean;
