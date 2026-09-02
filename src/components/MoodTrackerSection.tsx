@@ -12,6 +12,7 @@ import {
   Wind,
 } from "lucide-react";
 import { requestCbtReframe } from "@/services/api";
+import { logMoodEntry } from "@/lib/activityLog";
 import { ThinkingOrb } from "thinking-orbs";
 import { ttsPlayer } from "@/lib/iflytekTTS";
 
@@ -78,6 +79,7 @@ export const MoodTrackerSection: React.FC<{
   ];
 
   const handleSaveCheckIn = () => {
+    logMoodEntry(selectedMood, energyLevel, valenceLevel, moodNote);
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 2500);
   };

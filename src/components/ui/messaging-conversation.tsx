@@ -43,6 +43,7 @@ import {
   type VoiceCallStatusResponse,
 } from "@/services/api";
 import { getProfileConfig, subscribeProfileConfig, type ProfileConfig } from "@/lib/profileStore";
+import { logChatMessage } from "@/lib/activityLog";
 import { ThinkingOrb } from "thinking-orbs";
 import { IFlytekVoiceDictation } from "@/lib/iflytekSpeech";
 import { ttsPlayer } from "@/lib/iflytekTTS";
@@ -585,6 +586,7 @@ Take all the time you need. We can gently explore what you're experiencing step-
     };
 
     setMessages((prev) => [...prev, userMsg]);
+    logChatMessage("user", textToSend);
     setInputVal("");
     setIsTyping(true);
 
