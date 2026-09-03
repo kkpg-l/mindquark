@@ -16,6 +16,7 @@ import { logMoodEntry } from "@/lib/activityLog";
 import { ThinkingOrb } from "thinking-orbs";
 import { ttsPlayer } from "@/lib/iflytekTTS";
 import { useLanguage } from "@/lib/i18n";
+import { MoodScratchModal } from "@/components/MoodScratchModal";
 
 export const MoodTrackerSection: React.FC<{
   onStartChatWithMood?: (moodPrompt: string) => void;
@@ -27,6 +28,7 @@ export const MoodTrackerSection: React.FC<{
   const [valenceLevel, setValenceLevel] = useState<number>(4);
   const [moodNote, setMoodNote] = useState<string>("");
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [showScratchModal, setShowScratchModal] = useState(false);
 
   // CBT Reframer state
   const [automaticThought, setAutomaticThought] = useState("");
@@ -129,9 +131,19 @@ export const MoodTrackerSection: React.FC<{
                 <p className="text-xs text-muted-foreground">{t("mood.checkinSub")}</p>
               </div>
             </div>
-            <span className="text-xs text-muted-foreground font-mono">
-              {new Date().toLocaleDateString(language === "zh" ? "zh-CN" : "en-US", { month: "short", day: "numeric", weekday: "short" })}
-            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowScratchModal(true)}
+                className="inline-flex items-center gap-1.5 text-[11px] font-bold bg-gradient-to-r from-emerald-500/15 via-teal-500/15 to-emerald-500/15 hover:from-emerald-500/25 hover:to-teal-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 px-3 py-1 rounded-full shadow-xs transition-all hover:scale-105 active:scale-95 cursor-pointer"
+              >
+                <Sparkles className="size-3 text-emerald-500 animate-pulse" />
+                <span>{language === "zh" ? "情绪刮刮乐" : "Scratch Mood"}</span>
+              </button>
+              <span className="text-xs text-muted-foreground font-mono hidden sm:inline">
+                {new Date().toLocaleDateString(language === "zh" ? "zh-CN" : "en-US", { month: "short", day: "numeric", weekday: "short" })}
+              </span>
+            </div>
           </CardHeader>
 
           <CardContent className="p-0 space-y-5">
@@ -229,20 +241,32 @@ export const MoodTrackerSection: React.FC<{
                 <span>{t("mood.reflectBtn")}</span>
               </Button>
 
-              <Button
-                size="sm"
-                onClick={handleSaveCheckIn}
-                className="rounded-xl text-xs px-5 gap-1.5"
-              >
-                {savedSuccess ? (
-                  <>
-                    <CheckCircle2 className="size-4 text-emerald-300 animate-pop-in" />
-                    <span>{t("mood.saved")}</span>
-                  </>
-                ) : (
-                  <span>{t("mood.saveBtn")}</span>
-                )}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowScratchModal(true)}
+                  className="rounded-xl text-xs gap-1.5 border-emerald-500/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/10 cursor-pointer"
+                >
+                  <Sparkles className="size-3.5 text-emerald-500" />
+                  <span>{language === "zh" ? "情绪刮刮乐" : "Scratch Mood"}</span>
+                </Button>
+
+                <Button
+                  size="sm"
+                  onClick={handleSaveCheckIn}
+                  className="rounded-xl text-xs px-5 gap-1.5"
+                >
+                  {savedSuccess ? (
+                    <>
+                      <CheckCircle2 className="size-4 text-emerald-300 animate-pop-in" />
+                      <span>{t("mood.saved")}</span>
+                    </>
+                  ) : (
+                    <span>{t("mood.saveBtn")}</span>
+                  )}
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -344,6 +368,14 @@ export const MoodTrackerSection: React.FC<{
           </Card>
         </div>
       </div>
+
+      {/* Scratch To Reveal Animated Modal */}
+      <MoodScratchModal
+        isOpen={showScratchModal}
+        onClose={() => setShowScratchModal(false)}
+        selectedMood={selectedMood}
+        onConfirm={handleSaveCheckIn}
+      />
     </div>
   );
 };
