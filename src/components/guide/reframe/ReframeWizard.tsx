@@ -26,12 +26,25 @@ import { StepEvidence } from "./StepEvidence";
 import { StepReframe } from "./StepReframe";
 import { StepSummary } from "./StepSummary";
 import { STEPS } from "./wizardTypes";
+import { useLanguage } from "@/lib/i18n";
+
+const STEP_LABELS: Record<string, { en: string; zh: string }> = {
+  Situation: { en: "Situation", zh: "触发情境" },
+  Thought: { en: "Thought", zh: "自动想法" },
+  Emotion: { en: "Emotion", zh: "情绪感知" },
+  Distortion: { en: "Distortion", zh: "思维盲区" },
+  Evidence: { en: "Evidence", zh: "事实检视" },
+  Reframe: { en: "Reframe", zh: "思绪梳理" },
+  Summary: { en: "Summary", zh: "总结与行动" },
+};
 
 export const ReframeWizard: React.FC<{
   preset: ReframePreset | null;
   onBack: () => void;
   onStartChatWithPrompt: (prompt?: string) => void;
 }> = ({ preset, onBack, onStartChatWithPrompt }) => {
+  const { language } = useLanguage();
+  const isZh = language === "zh";
   const [stepIndex, setStepIndex] = useState(0);
   const [session, setSession] = useState<ReframeSession>(() =>
     preset
@@ -171,13 +184,15 @@ export const ReframeWizard: React.FC<{
         <Button
           variant="ghost"
           onClick={onBack}
-          className="rounded-full text-muted-foreground hover:text-foreground hover:bg-emerald-500/10 gap-1 -ml-2"
+          className="rounded-full text-muted-foreground hover:text-foreground hover:bg-emerald-500/10 gap-1 -ml-2 cursor-pointer"
         >
           <ChevronLeft className="size-4" />
-          Guide home
+          {isZh ? "返回工作坊" : "Guide home"}
         </Button>
         <span className="text-[11px] font-mono text-muted-foreground">
-          Step {stepIndex + 1} / {STEPS.length} · {STEPS[stepIndex]}
+          {isZh
+            ? `第 ${stepIndex + 1} 步 / 共 ${STEPS.length} 步 · ${STEP_LABELS[STEPS[stepIndex]]?.zh || STEPS[stepIndex]}`
+            : `Step ${stepIndex + 1} / ${STEPS.length} · ${STEPS[stepIndex]}`}
         </span>
       </div>
 
@@ -197,7 +212,7 @@ export const ReframeWizard: React.FC<{
 
       {draftRestored && !completed && (
         <p className="text-[11px] text-muted-foreground font-lato-light-italic">
-          Draft restored — pick up right where you left off.
+          {isZh ? "已恢复上次草稿 — 从离开处继续。" : "Draft restored — pick up right where you left off."}
         </p>
       )}
 
@@ -205,7 +220,7 @@ export const ReframeWizard: React.FC<{
         <div className="flex items-center gap-2.5 rounded-2xl border border-teal-500/25 bg-teal-500/5 px-4 py-3">
           <Compass className="size-4 shrink-0 text-teal-500/80" />
           <p className="flex-1 text-xs text-muted-foreground leading-relaxed">
-            From your assessment — suggested focus:{" "}
+            {isZh ? "来自自测报告 — 建议关注盲区：" : "From your assessment — suggested focus: "}{" "}
             <span className="font-semibold capitalize text-foreground">
               {preset.distortionType.replace(/-/g, " ")}
             </span>
@@ -214,9 +229,9 @@ export const ReframeWizard: React.FC<{
             size="sm"
             variant="outline"
             onClick={() => update({ confirmedDistortion: preset.distortionType })}
-            className="shrink-0 rounded-full h-7 text-[11px] border-teal-500/30 text-teal-700 dark:text-teal-300 hover:bg-teal-500/10"
+            className="shrink-0 rounded-full h-7 text-[11px] border-teal-500/30 text-teal-700 dark:text-teal-300 hover:bg-teal-500/10 cursor-pointer"
           >
-            Adopt
+            {isZh ? "采纳建议" : "Adopt"}
           </Button>
         </div>
       )}
@@ -250,17 +265,17 @@ export const ReframeWizard: React.FC<{
           <Button
             variant="ghost"
             onClick={handleStepBack}
-            className="rounded-full text-muted-foreground hover:text-foreground hover:bg-emerald-500/10 gap-1"
+            className="rounded-full text-muted-foreground hover:text-foreground hover:bg-emerald-500/10 gap-1 cursor-pointer"
           >
             <ChevronLeft className="size-4" />
-            {stepIndex === 0 ? "Leave wizard" : "Back"}
+            {stepIndex === 0 ? (isZh ? "退出向导" : "Leave wizard") : (isZh ? "上一步" : "Back")}
           </Button>
           <Button
             onClick={handleNext}
             disabled={!canProceed() || !!crisisText || isAnalyzing}
-            className="rounded-full bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
+            className="rounded-full bg-emerald-600 hover:bg-emerald-700 text-white gap-1 cursor-pointer"
           >
-            Continue
+            {isZh ? "下一步" : "Continue"}
             <ChevronRight className="size-4" />
           </Button>
         </div>

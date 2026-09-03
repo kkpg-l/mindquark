@@ -8,6 +8,7 @@ import type { NavTab } from "@/components/Navbar";
 import { AssessmentFlow } from "@/components/guide/assess/AssessmentFlow";
 import { ReframeWizard } from "@/components/guide/reframe/ReframeWizard";
 import { loadReframeDraft, clearReframeDraft, getCognitiveSnapshots } from "@/lib/guideStore";
+import { useLanguage } from "@/lib/i18n";
 
 type GuideMode = "home" | "assess" | "reframe";
 
@@ -16,11 +17,11 @@ export interface ReframePreset {
   situation?: string;
 }
 
-function formatWhen(iso: string | undefined): string {
+function formatWhen(iso: string | undefined, isZh: boolean): string {
   if (!iso) return "";
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleString("en-US", {
+  return date.toLocaleString(isZh ? "zh-CN" : "en-US", {
     month: "short",
     day: "numeric",
     hour: "2-digit",
@@ -32,6 +33,8 @@ export const GuideSection: React.FC<{
   onStartChatWithPrompt: (prompt?: string) => void;
   onNavigate: (tab: NavTab) => void;
 }> = ({ onStartChatWithPrompt, onNavigate }) => {
+  const { language } = useLanguage();
+  const isZh = language === "zh";
   const containerRef = useRef<HTMLDivElement>(null);
   const [mode, setMode] = useState<GuideMode>("home");
   const [reframePreset, setReframePreset] = useState<ReframePreset | null>(null);
@@ -76,13 +79,15 @@ export const GuideSection: React.FC<{
           <div className="text-center max-w-xl mx-auto pt-2">
             <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 px-3.5 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300 mb-2">
               <Compass className="size-3.5" />
-              <span>Guided Counseling Studio</span>
+              <span>{isZh ? "思绪梳理工作坊" : "Guided Counseling Studio"}</span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground font-lato-light">
-              Understand Your Mind, Reframe Your Thoughts
+              {isZh ? "理解内心感受，温和梳理思绪" : "Understand Your Mind, Reframe Your Thoughts"}
             </h2>
             <p className="mt-1.5 text-xs sm:text-sm text-muted-foreground font-lato-light-italic">
-              Evidence-based CBT journeys — a structured reframe wizard and a gentle cognitive assessment.
+              {isZh
+                ? "基于循证 CBT 的温和练习 — 包含想法梳理向导与身心状态自测。"
+                : "Evidence-based CBT journeys — a structured reframe wizard and a gentle cognitive assessment."}
             </p>
           </div>
 
@@ -93,36 +98,38 @@ export const GuideSection: React.FC<{
                   <Route className="size-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-base text-foreground">Cognitive Assessment</h3>
+                  <h3 className="font-bold text-base text-foreground">
+                    {isZh ? "心境与状态自测" : "Cognitive Assessment"}
+                  </h3>
                   <p className="text-[11px] text-muted-foreground font-lato-light-italic">
-                    A gentle 10-question intake with a multi-dimension report
+                    {isZh ? "10 道温和的自测题目，生成多维度分析报告" : "A gentle 10-question intake with a multi-dimension report"}
                   </p>
                 </div>
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Answer a short intake quiz and — with your permission — blend in signals from your recent
-                chats and mood check-ins to map thinking tendencies, energy states, and where your
-                attention has been living.
+                {isZh
+                  ? "完成简短自测问卷，并在征得你同意的前提下，结合近期对话与情绪记录，梳理思维倾向、精力状态与心理注意力分布。"
+                  : "Answer a short intake quiz and — with your permission — blend in signals from your recent chats and mood check-ins to map thinking tendencies, energy states, and where your attention has been living."}
               </p>
               <p className="mt-3 inline-flex items-start gap-1.5 text-[11px] text-muted-foreground">
                 <Sparkles className="size-3.5 mt-0.5 shrink-0 text-emerald-500/80" />
-                Everything stays on your device — nothing is uploaded or stored on a server.
+                {isZh ? "所有数据仅保存在本地设备中 — 绝不会上传或留存在云端服务器。" : "Everything stays on your device — nothing is uploaded or stored on a server."}
               </p>
               <div className="mt-5 flex flex-col gap-2.5">
                 <Button
                   onClick={startAssessment}
-                  className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white h-10"
+                  className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white h-10 cursor-pointer"
                 >
-                  Start Assessment
+                  {isZh ? "开始自测" : "Start Assessment"}
                 </Button>
                 {lastSnapshot ? (
                   <p className="text-center text-[11px] text-muted-foreground">
                     <Clock3 className="inline size-3 mr-1 -mt-0.5" />
-                    Last snapshot {formatWhen(lastSnapshot.createdAt)}
+                    {isZh ? `上次自测 ${formatWhen(lastSnapshot.createdAt, isZh)}` : `Last snapshot ${formatWhen(lastSnapshot.createdAt, isZh)}`}
                   </p>
                 ) : (
                   <p className="text-center text-[11px] text-muted-foreground">
-                    No assessment yet — the first one takes about 3 minutes.
+                    {isZh ? "暂无自测记录 — 初次评估约需 3 分钟。" : "No assessment yet — the first one takes about 3 minutes."}
                   </p>
                 )}
               </div>
@@ -134,44 +141,46 @@ export const GuideSection: React.FC<{
                   <HeartPulse className="size-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-base text-foreground">Guided Reframe</h3>
+                  <h3 className="font-bold text-base text-foreground">
+                    {isZh ? "想法梳理向导" : "Guided Reframe"}
+                  </h3>
                   <p className="text-[11px] text-muted-foreground font-lato-light-italic">
-                    A 7-step CBT thought record, one gentle move at a time
+                    {isZh ? "7 步温和 CBT 记录法，一步一步理清思绪" : "A 7-step CBT thought record, one gentle move at a time"}
                   </p>
                 </div>
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Work through a single sticky thought: name the situation, catch the automatic thought,
-                feel the emotion, spot the distortion, weigh the evidence, and land on a balanced
-                reframe with one small step.
+                {isZh
+                  ? "专注梳理一个困扰你的想法：记录当下的情境，觉察自动闪过的想法与情绪，识别思维盲区，列出客观事实，提炼出平衡的新想法与行动小步。"
+                  : "Work through a single sticky thought: name the situation, catch the automatic thought, feel the emotion, spot the distortion, weigh the evidence, and land on a balanced reframe with one small step."}
               </p>
               <p className="mt-3 inline-flex items-start gap-1.5 text-[11px] text-muted-foreground">
                 <FileText className="size-3.5 mt-0.5 shrink-0 text-teal-500/80" />
-                Your draft auto-saves along the way — leave and pick it back up anytime.
+                {isZh ? "梳理草稿会自动保存在本地 — 可以随时离开并稍后继续。" : "Your draft auto-saves along the way — leave and pick it back up anytime."}
               </p>
               <div className="mt-5 flex flex-col gap-2.5">
                 {draft ? (
                   <>
                     <Button
                       onClick={startWizard}
-                      className="w-full rounded-xl bg-teal-600 hover:bg-teal-700 text-white h-10"
+                      className="w-full rounded-xl bg-teal-600 hover:bg-teal-700 text-white h-10 cursor-pointer"
                     >
-                      Continue Draft — resume where you left off
+                      {isZh ? "继续上次草稿 — 从离开处恢复" : "Continue Draft — resume where you left off"}
                     </Button>
                     <Button
                       onClick={startWizardFresh}
                       variant="outline"
-                      className="w-full rounded-xl h-9 border-teal-500/30 text-teal-700 dark:text-teal-300 hover:bg-teal-500/10"
+                      className="w-full rounded-xl h-9 border-teal-500/30 text-teal-700 dark:text-teal-300 hover:bg-teal-500/10 cursor-pointer"
                     >
-                      Start Fresh
+                      {isZh ? "重新开始" : "Start Fresh"}
                     </Button>
                   </>
                 ) : (
                   <Button
                     onClick={startWizard}
-                    className="w-full rounded-xl bg-teal-600 hover:bg-teal-700 text-white h-10"
+                    className="w-full rounded-xl bg-teal-600 hover:bg-teal-700 text-white h-10 cursor-pointer"
                   >
-                    Begin 7-Step Wizard
+                    {isZh ? "开始 7 步梳理" : "Begin 7-Step Wizard"}
                   </Button>
                 )}
               </div>

@@ -24,6 +24,7 @@ import { saveCognitiveSnapshot, getCognitiveSnapshots } from "@/lib/guideStore";
 import { getCrisisFallback } from "@/lib/safety";
 import { CrisisNotice } from "@/components/guide/CrisisNotice";
 import { requestGuideAssessment, type GuideAssessResponse } from "@/services/api";
+import { useLanguage } from "@/lib/i18n";
 
 type AssessmentPhase = "landing" | "quiz" | "analyzing" | "report";
 
@@ -39,6 +40,8 @@ export const AssessmentFlow: React.FC<{
   onStartReframe: (preset: ReframePreset) => void;
   onNavigate: (tab: NavTab) => void;
 }> = ({ onBack, onStartReframe, onNavigate }) => {
+  const { language } = useLanguage();
+  const isZh = language === "zh";
   const containerRef = useRef<HTMLDivElement>(null);
   const [phase, setPhase] = useState<AssessmentPhase>("landing");
   const [report, setReport] = useState<AssessmentReport | null>(null);
@@ -89,6 +92,8 @@ export const AssessmentFlow: React.FC<{
       } catch (err) {
         if ((err as Error)?.message === "CRISIS") {
           setCrisisNotice(getCrisisFallback(quizContext || texts[texts.length - 1] || ""));
+          setPhase("landing");
+          return;
         }
       }
     }
@@ -135,10 +140,10 @@ export const AssessmentFlow: React.FC<{
             <Button
               variant="ghost"
               onClick={onBack}
-              className="rounded-full text-muted-foreground hover:text-foreground hover:bg-emerald-500/10 gap-1 -ml-2"
+              className="rounded-full text-muted-foreground hover:text-foreground hover:bg-emerald-500/10 gap-1 -ml-2 cursor-pointer"
             >
               <ChevronLeft className="size-4" />
-              Guide home
+              {isZh ? "返回工作坊" : "Guide home"}
             </Button>
           </div>
 
@@ -148,9 +153,11 @@ export const AssessmentFlow: React.FC<{
                 <ClipboardList className="size-5" />
               </div>
               <div>
-                <h3 className="font-bold text-base text-foreground">Before we begin</h3>
+                <h3 className="font-bold text-base text-foreground">
+                  {isZh ? "在开始自测前" : "Before we begin"}
+                </h3>
                 <p className="text-[11px] text-muted-foreground font-lato-light-italic">
-                  What this is — and what it isn&apos;t
+                  {isZh ? "关于本自测的性质与边界说明" : "What this is — and what it isn't"}
                 </p>
               </div>
             </div>
@@ -159,27 +166,50 @@ export const AssessmentFlow: React.FC<{
               <li className="flex gap-2">
                 <ShieldCheck className="size-4 mt-0.5 shrink-0 text-emerald-500/80" />
                 <span>
-                  This is a self-awareness companion built on CBT concepts — it maps{" "}
-                  <span className="text-foreground font-medium">tendencies</span>, not diagnoses, and never
-                  replaces professional care.
+                  {isZh ? (
+                    <>
+                      这是一个基于 CBT 心理学理念的自我觉察工具 — 它描绘的是你的
+                      <span className="text-foreground font-medium">思维倾向</span>
+                      而非临床诊断，无法替代专业医护与心理门诊。
+                    </>
+                  ) : (
+                    <>
+                      This is a self-awareness companion built on CBT concepts — it maps{" "}
+                      <span className="text-foreground font-medium">tendencies</span>, not diagnoses, and never
+                      replaces professional care.
+                    </>
+                  )}
                 </span>
               </li>
               <li className="flex gap-2">
                 <ClipboardList className="size-4 mt-0.5 shrink-0 text-emerald-500/80" />
                 <span>
-                  A 10-question intake covers sleep, mood, thinking habits, and what&apos;s feeling heavy
-                  lately — about 3 minutes.
+                  {isZh
+                    ? "10 道自测问卷涵盖睡眠、情绪、思维习惯以及近期感到沉重的事物 — 约需 3 分钟。"
+                    : "A 10-question intake covers sleep, mood, thinking habits, and what's feeling heavy lately — about 3 minutes."}
                 </span>
               </li>
               <li className="flex gap-2">
                 <Database className="size-4 mt-0.5 shrink-0 text-emerald-500/80" />
                 <span>
-                  With your permission we blend in local signals:{" "}
-                  <span className="text-foreground font-medium">
-                    {localTexts.length} recent message{localTexts.length === 1 ? "" : "s"} and{" "}
-                    {localMoods.length} mood check-in{localMoods.length === 1 ? "" : "s"}
-                  </span>
-                  . Everything stays on your device.
+                  {isZh ? (
+                    <>
+                      在征得你同意后，我们将结合本地记录：
+                      <span className="text-foreground font-medium">
+                        {localTexts.length} 条近期对话与 {localMoods.length} 次情绪记录
+                      </span>
+                      。所有内容均仅保存在本地设备中。
+                    </>
+                  ) : (
+                    <>
+                      With your permission we blend in local signals:{" "}
+                      <span className="text-foreground font-medium">
+                        {localTexts.length} recent message{localTexts.length === 1 ? "" : "s"} and{" "}
+                        {localMoods.length} mood check-in{localMoods.length === 1 ? "" : "s"}
+                      </span>
+                      . Everything stays on your device.
+                    </>
+                  )}
                 </span>
               </li>
             </ul>
@@ -187,25 +217,26 @@ export const AssessmentFlow: React.FC<{
             <div className="flex flex-col gap-2.5 pt-1">
               <Button
                 onClick={() => setPhase("quiz")}
-                className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white h-10"
+                className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white h-10 cursor-pointer"
               >
-                Start 10-question quiz
+                {isZh ? "开始 10 题自测" : "Start 10-question quiz"}
               </Button>
               <Button
                 variant="ghost"
                 onClick={() => runAssessment(null)}
                 disabled={!hasLocalData}
-                className="w-full rounded-xl text-muted-foreground hover:text-foreground h-9"
+                className="w-full rounded-xl text-muted-foreground hover:text-foreground h-9 cursor-pointer"
               >
                 {hasLocalData
-                  ? "Skip quiz — use my local history"
-                  : "Skip quiz (needs some local history first — try chatting or a mood check-in)"}
+                  ? (isZh ? "跳过问卷 — 直接使用本地历史记录分析" : "Skip quiz — use my local history")
+                  : (isZh ? "跳过问卷（需要先有一些本地历史记录 — 请尝试对话或记录情绪）" : "Skip quiz (needs some local history first — try chatting or a mood check-in)")}
               </Button>
             </div>
 
             <p className="text-[11px] text-muted-foreground font-lato-light-italic border-t border-emerald-500/10 pt-4">
-              Not a medical device · Not for emergencies · If you are in crisis, please contact local
-              emergency services or a crisis line right away.
+              {isZh
+                ? "非医疗器械 · 不适用于紧急危机 · 如遇危急情况，请立即联系当地急救或心理危机干预热线。"
+                : "Not a medical device · Not for emergencies · If you are in crisis, please contact local emergency services or a crisis line right away."}
             </p>
           </Card>
         </>
@@ -219,7 +250,7 @@ export const AssessmentFlow: React.FC<{
         <div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
           <ThinkingOrb state="solving" size={64} speed={0.85} />
           <p className="text-sm text-muted-foreground font-lato-light-italic">
-            Blending your signals into a gentle map — one moment...
+            {isZh ? "正在将你的身心信号整理为温和的画像 — 请稍候..." : "Blending your signals into a gentle map — one moment..."}
           </p>
         </div>
       )}
@@ -230,10 +261,10 @@ export const AssessmentFlow: React.FC<{
             <Button
               variant="ghost"
               onClick={onBack}
-              className="rounded-full text-muted-foreground hover:text-foreground hover:bg-emerald-500/10 gap-1 -ml-2"
+              className="rounded-full text-muted-foreground hover:text-foreground hover:bg-emerald-500/10 gap-1 -ml-2 cursor-pointer"
             >
               <ChevronLeft className="size-4" />
-              Guide home
+              {isZh ? "返回工作坊" : "Guide home"}
             </Button>
           </div>
 

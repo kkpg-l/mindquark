@@ -31,6 +31,7 @@ import { Button } from "@/components/ui/button";
 import { SparklesText } from "@/components/ui/sparkles-text";
 import { chimeAudio } from "@/lib/chimeAudio";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/lib/i18n";
 
 export type BreathingTechnique =
   | "4-7-8"
@@ -71,288 +72,354 @@ interface TechniqueConfig {
   phases: PhaseConfig[];
 }
 
-// Harmonious White & Green Botanical Palette across all techniques
-const TECHNIQUES: TechniqueConfig[] = [
-  {
-    id: "4-7-8",
-    name: "4-7-8 Vagus Nerve Reset",
-    badge: "Sleep & Deep Calm",
-    timingBadge: "4s In · 7s Hold · 8s Out",
-    desc: "Dr. Andrew Weil's natural tranquilizer to down-regulate the nervous system, lower resting heart rate, and dissolve bedtime insomnia.",
-    mechanism: "Extended exhales trigger vagal tone to release acetylcholine, rapidly braking cardiac acceleration and halting racing thoughts.",
-    benefits: "Dissolves insomnia · Calms heart palpitations · Nighttime reset",
-    icon: Sparkles,
-    phases: [
-      {
-        phase: "inhale",
-        duration: 4,
-        title: "Inhale (4s)",
-        guide: "Inhale quietly through your nose deep into your belly.",
-        sound: "inhale",
-        colorClass: "from-emerald-400 via-emerald-500 to-teal-600",
-        glowColor: "rgba(16, 185, 129, 0.45)",
-      },
-      {
-        phase: "hold",
-        duration: 7,
-        title: "Hold Full (7s)",
-        guide: "Retain the fullness in quiet stillness, feeling your shoulders drop.",
-        sound: "hold",
-        colorClass: "from-teal-400 via-emerald-500 to-teal-600",
-        glowColor: "rgba(20, 184, 166, 0.45)",
-      },
-      {
-        phase: "exhale",
-        duration: 8,
-        title: "Exhale Completely (8s)",
-        guide: "Release all air through your mouth with a gentle, continuous sigh.",
-        sound: "exhale",
-        colorClass: "from-emerald-500 via-teal-600 to-emerald-700",
-        glowColor: "rgba(16, 185, 129, 0.35)",
-      },
-    ],
-  },
-  {
-    id: "box",
-    name: "Box Breathing 4-4-4-4",
-    badge: "Focus & Tactical Calm",
-    timingBadge: "4s In · 4s Hold · 4s Out · 4s Rest",
-    desc: "Navy SEALs tactical protocol to clear acute brain fog, neutralize the fight-or-flight panic reflex, and regain situational composure.",
-    mechanism: "Equalized 4-phase respiration re-balances the autonomic nervous system, quieting amygdala alarm signals within 2 minutes.",
-    benefits: "High-pressure composure · Clears brain fog · Rapid panic control",
-    icon: Activity,
-    phases: [
-      {
-        phase: "inhale",
-        duration: 4,
-        title: "Inhale (4s)",
-        guide: "Inhale smoothly and steadily as your ribcage expands outward.",
-        sound: "inhale",
-        colorClass: "from-emerald-400 via-emerald-500 to-teal-600",
-        glowColor: "rgba(16, 185, 129, 0.45)",
-      },
-      {
-        phase: "hold",
-        duration: 4,
-        title: "Hold Full (4s)",
-        guide: "Hold without closing your throat; maintain open ease.",
-        sound: "hold",
-        colorClass: "from-teal-400 via-emerald-500 to-teal-600",
-        glowColor: "rgba(20, 184, 166, 0.45)",
-      },
-      {
-        phase: "exhale",
-        duration: 4,
-        title: "Exhale (4s)",
-        guide: "Release air smoothly and evenly through nose or mouth.",
-        sound: "exhale",
-        colorClass: "from-emerald-500 via-teal-600 to-emerald-700",
-        glowColor: "rgba(16, 185, 129, 0.35)",
-      },
-      {
-        phase: "holdPost",
-        duration: 4,
-        title: "Hold Empty (4s)",
-        guide: "Rest in the quiet stillness at the bottom of the breath.",
-        sound: "hold",
-        colorClass: "from-emerald-600 via-teal-600 to-emerald-700",
-        glowColor: "rgba(16, 185, 129, 0.3)",
-      },
-    ],
-  },
-  {
-    id: "coherent",
-    name: "Coherent HRV Resonance",
-    badge: "Heart-Brain Coherence",
-    timingBadge: "5.5s Inhale · 5.5s Exhale",
-    desc: "Neuro-cardiology resonance rhythm (approx. 5.5 breaths/min) that maximizes Heart Rate Variability (HRV) and sustains daytime flow state.",
-    mechanism: "Resonates cardiovascular and pulmonary rhythms to stimulate alpha brainwaves, inducing profound emotional equilibrium.",
-    benefits: "Daytime flow state · Emotional stabilization · Cortisol reduction",
-    icon: Waves,
-    phases: [
-      {
-        phase: "inhale",
-        duration: 5.5,
-        title: "Inhale Coherently (5.5s)",
-        guide: "A smooth, uninterrupted wave of breath expanding the heart space.",
-        sound: "inhale",
-        colorClass: "from-emerald-400 via-emerald-500 to-teal-600",
-        glowColor: "rgba(16, 185, 129, 0.45)",
-      },
-      {
-        phase: "exhale",
-        duration: 5.5,
-        title: "Exhale Coherently (5.5s)",
-        guide: "Gentle receding tide of breath, sinking into peaceful lightness.",
-        sound: "exhale",
-        colorClass: "from-emerald-500 via-teal-600 to-emerald-700",
-        glowColor: "rgba(16, 185, 129, 0.35)",
-      },
-    ],
-  },
-  {
-    id: "triangle",
-    name: "Triangle Breathing 4-4-4",
-    badge: "Balance & Harmony",
-    timingBadge: "4s In · 4s Hold · 4s Out",
-    desc: "Classical Pranayama 3-phase symmetrical practice to gently center the mind, balance left-right hemispheres, and prepare for mindfulness.",
-    mechanism: "Constructs an equilateral physiological rhythm, releasing everyday tension and stabilizing baseline respiration.",
-    benefits: "Gentle daily de-stress · Meditation preparation · Autonomic harmony",
-    icon: Triangle,
-    phases: [
-      {
-        phase: "inhale",
-        duration: 4,
-        title: "Inhale (4s)",
-        guide: "Draw fresh energy along the first side of the triangle.",
-        sound: "inhale",
-        colorClass: "from-emerald-400 via-emerald-500 to-teal-600",
-        glowColor: "rgba(16, 185, 129, 0.45)",
-      },
-      {
-        phase: "hold",
-        duration: 4,
-        title: "Hold (4s)",
-        guide: "Hold calmly along the second side, sensing stability.",
-        sound: "hold",
-        colorClass: "from-teal-400 via-emerald-500 to-teal-600",
-        glowColor: "rgba(20, 184, 166, 0.45)",
-      },
-      {
-        phase: "exhale",
-        duration: 4,
-        title: "Exhale (4s)",
-        guide: "Release fatigue along the third side, feeling grounded.",
-        sound: "exhale",
-        colorClass: "from-emerald-500 via-teal-600 to-emerald-700",
-        glowColor: "rgba(16, 185, 129, 0.35)",
-      },
-    ],
-  },
-  {
-    id: "sigh",
-    name: "Physiological Sigh",
-    badge: "Stanford Fast De-Stress",
-    timingBadge: "2.5s In + 1s Top-Up · 6s Out",
-    desc: "Stanford Huberman Lab method: double inhale pops open collapsed alveoli, followed by a long sigh to eliminate acute stress in under 60 seconds.",
-    mechanism: "The second quick inhale inflates collapsed air sacs (alveoli); the long sigh offloads maximum CO₂ to rapidly brake autonomic arousal.",
-    benefits: "Rapid panic shutdown · Emergency stress relief · Instant physical release",
-    icon: Feather,
-    phases: [
-      {
-        phase: "inhale",
-        duration: 2.5,
-        title: "First Inhale (2.5s)",
-        guide: "Deep nasal inhale filling the majority of your lung volume.",
-        sound: "inhale",
-        colorClass: "from-emerald-400 via-emerald-500 to-teal-600",
-        glowColor: "rgba(16, 185, 129, 0.45)",
-      },
-      {
-        phase: "inhaleExtra",
-        duration: 1,
-        title: "Quick Top-Up Inhale (1s)",
-        guide: "Sharply top off with a second quick sip of air to pop open alveoli!",
-        sound: "inhale",
-        colorClass: "from-emerald-300 via-teal-400 to-emerald-500",
-        glowColor: "rgba(52, 211, 153, 0.55)",
-      },
-      {
-        phase: "exhale",
-        duration: 6,
-        title: "Long Sigh Exhale (6s)",
-        guide: "Gently sigh all the air out through your mouth, dropping every muscle.",
-        sound: "exhale",
-        colorClass: "from-emerald-500 via-teal-600 to-emerald-700",
-        glowColor: "rgba(16, 185, 129, 0.35)",
-      },
-    ],
-  },
-  {
-    id: "energy",
-    name: "Awake & Energize 4-2-4",
-    badge: "Morning Clarity & Wake Up",
-    timingBadge: "4s In · 2s Hold · 4s Out",
-    desc: "Brisk energizing rhythm to boost oxygenation, shake off afternoon brain fog, and restore vibrant mental clarity naturally without caffeine.",
-    mechanism: "Accelerates metabolic circulation and blood oxygen saturation to stimulate the central nervous system with zero crash.",
-    benefits: "Morning brain wake-up · Beat afternoon slump · Clean natural focus",
-    icon: Zap,
-    phases: [
-      {
-        phase: "inhale",
-        duration: 4,
-        title: "Inhale Fresh Energy (4s)",
-        guide: "Inhale deeply and briskly, drawing vibrant energy into your cells.",
-        sound: "inhale",
-        colorClass: "from-emerald-400 via-emerald-500 to-teal-500",
-        glowColor: "rgba(16, 185, 129, 0.45)",
-      },
-      {
-        phase: "hold",
-        duration: 2,
-        title: "Brief Hold (2s)",
-        guide: "Brief 2-second pause as oxygen distributes through your body.",
-        sound: "hold",
-        colorClass: "from-teal-400 via-emerald-400 to-teal-500",
-        glowColor: "rgba(20, 184, 166, 0.45)",
-      },
-      {
-        phase: "exhale",
-        duration: 4,
-        title: "Exhale Stagnancy (4s)",
-        guide: "Exhale firmly and smoothly, casting off sluggishness.",
-        sound: "exhale",
-        colorClass: "from-emerald-500 via-teal-600 to-emerald-700",
-        glowColor: "rgba(16, 185, 129, 0.35)",
-      },
-    ],
-  },
-];
+// Harmonious White & Green Botanical Palette across all techniques (Bilingual support)
+function getTechniques(lang: "en" | "zh"): TechniqueConfig[] {
+  const isZh = lang === "zh";
+  return [
+    {
+      id: "4-7-8",
+      name: isZh ? "4-7-8 迷走神经放松法" : "4-7-8 Vagus Nerve Reset",
+      badge: isZh ? "助眠与深度宁静" : "Sleep & Deep Calm",
+      timingBadge: isZh ? "吸气 4秒 · 屏息 7秒 · 呼气 8秒" : "4s In · 7s Hold · 8s Out",
+      desc: isZh
+        ? "由安德鲁·韦尔博士开创的自然镇静法。通过延长呼气深度调节副交感神经，降低静息心率，化解睡前反刍与失眠。"
+        : "Dr. Andrew Weil's natural tranquilizer to down-regulate the nervous system, lower resting heart rate, and dissolve bedtime insomnia.",
+      mechanism: isZh
+        ? "延长呼气时长强烈刺激迷走神经释放乙酰胆碱，对过度活跃的心率发挥强效减速刹车，迅速平息奔腾杂乱的念头。"
+        : "Extended exhales trigger vagal tone to release acetylcholine, rapidly braking cardiac acceleration and halting racing thoughts.",
+      benefits: isZh
+        ? "化解失眠困扰 · 平复心慌心悸 · 晚间身心重置"
+        : "Dissolves insomnia · Calms heart palpitations · Nighttime reset",
+      icon: Sparkles,
+      phases: [
+        {
+          phase: "inhale",
+          duration: 4,
+          title: isZh ? "深长吸气 (4秒)" : "Inhale (4s)",
+          guide: isZh ? "闭上嘴唇，用鼻子深长平稳地吸气，感受腹部柔和隆起。" : "Inhale quietly through your nose deep into your belly.",
+          sound: "inhale",
+          colorClass: "from-emerald-400 via-emerald-500 to-teal-600",
+          glowColor: "rgba(16, 185, 129, 0.45)",
+        },
+        {
+          phase: "hold",
+          duration: 7,
+          title: isZh ? "充盈屏息 (7秒)" : "Hold Full (7s)",
+          guide: isZh ? "在静谧中保持充盈，感受双肩自然下沉，体会当下的安定。" : "Retain the fullness in quiet stillness, feeling your shoulders drop.",
+          sound: "hold",
+          colorClass: "from-teal-400 via-emerald-500 to-teal-600",
+          glowColor: "rgba(20, 184, 166, 0.45)",
+        },
+        {
+          phase: "exhale",
+          duration: 8,
+          title: isZh ? "绵长呼气 (8秒)" : "Exhale Completely (8s)",
+          guide: isZh ? "微张双唇，像轻柔叹息一样把所有气体缓缓吐尽，释放所有紧绷。" : "Release all air through your mouth with a gentle, continuous sigh.",
+          sound: "exhale",
+          colorClass: "from-emerald-500 via-teal-600 to-emerald-700",
+          glowColor: "rgba(16, 185, 129, 0.35)",
+        },
+      ],
+    },
+    {
+      id: "box",
+      name: isZh ? "箱式呼吸法 4-4-4-4" : "Box Breathing 4-4-4-4",
+      badge: isZh ? "战术专注与高压冷静" : "Focus & Tactical Calm",
+      timingBadge: isZh ? "吸气 4秒 · 屏息 4秒 · 呼气 4秒 · 停顿 4秒" : "4s In · 4s Hold · 4s Out · 4s Rest",
+      desc: isZh
+        ? "海豹突击队战术减压法则。迅速扫清急性脑雾，中和“战或逃”惊恐反射，迅速恢复沉着决断力。"
+        : "Navy SEALs tactical protocol to clear acute brain fog, neutralize the fight-or-flight panic reflex, and regain situational composure.",
+      mechanism: isZh
+        ? "等时四相呼吸能重置自主神经稳态平衡，在 2 分钟内平息杏仁核发出的警报信号。"
+        : "Equalized 4-phase respiration re-balances the autonomic nervous system, quieting amygdala alarm signals within 2 minutes.",
+      benefits: isZh
+        ? "高压从容应对 · 清除思维脑雾 · 快速控制惊恐"
+        : "High-pressure composure · Clears brain fog · Rapid panic control",
+      icon: Activity,
+      phases: [
+        {
+          phase: "inhale",
+          duration: 4,
+          title: isZh ? "平稳吸气 (4秒)" : "Inhale (4s)",
+          guide: isZh ? "均匀平稳地吸气，感受胸廓与肋骨向外柔和扩展。" : "Inhale smoothly and steadily as your ribcage expands outward.",
+          sound: "inhale",
+          colorClass: "from-emerald-400 via-emerald-500 to-teal-600",
+          glowColor: "rgba(16, 185, 129, 0.45)",
+        },
+        {
+          phase: "hold",
+          duration: 4,
+          title: isZh ? "充盈屏息 (4秒)" : "Hold Full (4s)",
+          guide: isZh ? "放松喉咙，保持肺部充盈，体会内心的平稳从容。" : "Hold without closing your throat; maintain open ease.",
+          sound: "hold",
+          colorClass: "from-teal-400 via-emerald-500 to-teal-600",
+          glowColor: "rgba(20, 184, 166, 0.45)",
+        },
+        {
+          phase: "exhale",
+          duration: 4,
+          title: isZh ? "缓慢呼气 (4秒)" : "Exhale (4s)",
+          guide: isZh ? "平缓有节奏地呼出空气，释放胸口的一切压力。" : "Release air smoothly and evenly through nose or mouth.",
+          sound: "exhale",
+          colorClass: "from-emerald-500 via-teal-600 to-emerald-700",
+          glowColor: "rgba(16, 185, 129, 0.35)",
+        },
+        {
+          phase: "holdPost",
+          duration: 4,
+          title: isZh ? "停顿休息 (4秒)" : "Hold Empty (4s)",
+          guide: isZh ? "在呼气结束后的空旷宁静中停留，感受安详。" : "Rest in the quiet stillness at the bottom of the breath.",
+          sound: "hold",
+          colorClass: "from-emerald-600 via-teal-600 to-emerald-700",
+          glowColor: "rgba(16, 185, 129, 0.3)",
+        },
+      ],
+    },
+    {
+      id: "coherent",
+      name: isZh ? "心脑同频呼吸 5.5秒" : "Coherent HRV Resonance",
+      badge: isZh ? "心脑协同与共振" : "Heart-Brain Coherence",
+      timingBadge: isZh ? "吸气 5.5秒 · 呼气 5.5秒" : "5.5s Inhale · 5.5s Exhale",
+      desc: isZh
+        ? "神经心脏学实证的最佳共振节律（约每分钟 5.5 次呼吸）。极大提升心率变异性 (HRV)，维持日间心流状态。"
+        : "Neuro-cardiology resonance rhythm (approx. 5.5 breaths/min) that maximizes Heart Rate Variability (HRV) and sustains daytime flow state.",
+      mechanism: isZh
+        ? "使心血管与呼吸节律产生生物物理共振，促发大脑 α 波，带来深沉的情绪平衡。"
+        : "Resonates cardiovascular and pulmonary rhythms to stimulate alpha brainwaves, inducing profound emotional equilibrium.",
+      benefits: isZh
+        ? "白天心流聚焦 · 情绪稳定中和 · 降低压力皮质醇"
+        : "Daytime flow state · Emotional stabilization · Cortisol reduction",
+      icon: Waves,
+      phases: [
+        {
+          phase: "inhale",
+          duration: 5.5,
+          title: isZh ? "平顺吸气 (5.5秒)" : "Inhale Coherently (5.5s)",
+          guide: isZh ? "如同一波温润潮汐缓缓涌起，舒展胸口与心区。" : "A smooth, uninterrupted wave of breath expanding the heart space.",
+          sound: "inhale",
+          colorClass: "from-emerald-400 via-emerald-500 to-teal-600",
+          glowColor: "rgba(16, 185, 129, 0.45)",
+        },
+        {
+          phase: "exhale",
+          duration: 5.5,
+          title: isZh ? "柔和呼气 (5.5秒)" : "Exhale Coherently (5.5s)",
+          guide: isZh ? "潮汐缓缓退去，整个人沉入轻盈宁静的放松中。" : "Gentle receding tide of breath, sinking into peaceful lightness.",
+          sound: "exhale",
+          colorClass: "from-emerald-500 via-teal-600 to-emerald-700",
+          glowColor: "rgba(16, 185, 129, 0.35)",
+        },
+      ],
+    },
+    {
+      id: "triangle",
+      name: isZh ? "三角平衡呼吸 4-4-4" : "Triangle Breathing 4-4-4",
+      badge: isZh ? "调和身心与专注" : "Balance & Harmony",
+      timingBadge: isZh ? "吸气 4秒 · 屏息 4秒 · 呼气 4秒" : "4s In · 4s Hold · 4s Out",
+      desc: isZh
+        ? "源自经典调息法的等边对称练习。温和集中注意力，平衡左右脑，帮助进入静心状态。"
+        : "Classical Pranayama 3-phase symmetrical practice to gently center the mind, balance left-right hemispheres, and prepare for mindfulness.",
+      mechanism: isZh
+        ? "构建等边三角形的平稳节律，释放日间肌肉张力，让基础呼吸重归平静。"
+        : "Constructs an equilateral physiological rhythm, releasing everyday tension and stabilizing baseline respiration.",
+      benefits: isZh
+        ? "日常温和减压 · 冥想前热身 · 自主神经调和"
+        : "Gentle daily de-stress · Meditation preparation · Autonomic harmony",
+      icon: Triangle,
+      phases: [
+        {
+          phase: "inhale",
+          duration: 4,
+          title: isZh ? "吸气 (4秒)" : "Inhale (4s)",
+          guide: isZh ? "沿着三角形第一条边吸入清新空气与生机。" : "Draw fresh energy along the first side of the triangle.",
+          sound: "inhale",
+          colorClass: "from-emerald-400 via-emerald-500 to-teal-600",
+          glowColor: "rgba(16, 185, 129, 0.45)",
+        },
+        {
+          phase: "hold",
+          duration: 4,
+          title: isZh ? "屏息 (4秒)" : "Hold (4s)",
+          guide: isZh ? "沿着第二条边安静屏息，感受内心的稳固与从容。" : "Hold calmly along the second side, sensing stability.",
+          sound: "hold",
+          colorClass: "from-teal-400 via-emerald-500 to-teal-600",
+          glowColor: "rgba(20, 184, 166, 0.45)",
+        },
+        {
+          phase: "exhale",
+          duration: 4,
+          title: isZh ? "呼气 (4秒)" : "Exhale (4s)",
+          guide: isZh ? "沿着第三条边舒畅呼出，让疲惫随气息沉降释放。" : "Release fatigue along the third side, feeling grounded.",
+          sound: "exhale",
+          colorClass: "from-emerald-500 via-teal-600 to-emerald-700",
+          glowColor: "rgba(16, 185, 129, 0.35)",
+        },
+      ],
+    },
+    {
+      id: "sigh",
+      name: isZh ? "生理性叹息呼吸" : "Physiological Sigh",
+      badge: isZh ? "斯坦福极速减压" : "Stanford Fast De-Stress",
+      timingBadge: isZh ? "深吸 2.5秒 + 补吸 1秒 · 呼气 6秒" : "2.5s In + 1s Top-Up · 6s Out",
+      desc: isZh
+        ? "斯坦福大学胡伯曼实验室科学验证：两次吸气重新撑开微小肺泡，紧接绵长叹息，60秒内快速切断急性压力。"
+        : "Stanford Huberman Lab method: double inhale pops open collapsed alveoli, followed by a long sigh to eliminate acute stress in under 60 seconds.",
+      mechanism: isZh
+        ? "第二次补吸撑开闭合的肺泡气囊；随后的超长叹息最大程度排出二氧化碳，迅速给交感神经踩刹车。"
+        : "The second quick inhale inflates collapsed air sacs (alveoli); the long sigh offloads maximum CO₂ to rapidly brake autonomic arousal.",
+      benefits: isZh
+        ? "遏制惊恐焦虑 · 紧急情绪减压 · 瞬间卸下身体紧绷"
+        : "Rapid panic shutdown · Emergency stress relief · Instant physical release",
+      icon: Feather,
+      phases: [
+        {
+          phase: "inhale",
+          duration: 2.5,
+          title: isZh ? "首次深吸气 (2.5秒)" : "First Inhale (2.5s)",
+          guide: isZh ? "用鼻子充分深吸气，填满大部分肺部容积。" : "Deep nasal inhale filling the majority of your lung volume.",
+          sound: "inhale",
+          colorClass: "from-emerald-400 via-emerald-500 to-teal-600",
+          glowColor: "rgba(16, 185, 129, 0.45)",
+        },
+        {
+          phase: "inhaleExtra",
+          duration: 1,
+          title: isZh ? "快速补吸一口 (1秒)" : "Quick Top-Up Inhale (1s)",
+          guide: isZh ? "不要呼气！紧接着短促再吸一小口，彻底撑开闭合的微小肺泡！" : "Sharply top off with a second quick sip of air to pop open alveoli!",
+          sound: "inhale",
+          colorClass: "from-emerald-300 via-teal-400 to-emerald-500",
+          glowColor: "rgba(52, 211, 153, 0.55)",
+        },
+        {
+          phase: "exhale",
+          duration: 6,
+          title: isZh ? "绵长叹息呼气 (6秒)" : "Long Sigh Exhale (6s)",
+          guide: isZh ? "微张双唇，像叹气一样把所有气体完全吐尽，全身肌肉彻底松弛。" : "Gently sigh all the air out through your mouth, dropping every muscle.",
+          sound: "exhale",
+          colorClass: "from-emerald-500 via-teal-600 to-emerald-700",
+          glowColor: "rgba(16, 185, 129, 0.35)",
+        },
+      ],
+    },
+    {
+      id: "energy",
+      name: isZh ? "身心唤醒呼吸 4-2-4" : "Awake & Energize 4-2-4",
+      badge: isZh ? "清晨活力与提神" : "Morning Clarity & Wake Up",
+      timingBadge: isZh ? "吸气 4秒 · 屏息 2秒 · 呼气 4秒" : "4s In · 2s Hold · 4s Out",
+      desc: isZh
+        ? "轻快有力的充氧节律，增加血氧饱和度，扫清午后困倦与脑雾，自然恢复清醒专注。"
+        : "Brisk energizing rhythm to boost oxygenation, shake off afternoon brain fog, and restore vibrant mental clarity naturally without caffeine.",
+      mechanism: isZh
+        ? "加快循环与血氧供给，温和激活中枢神经系统，带来纯天然清爽活力。"
+        : "Accelerates metabolic circulation and blood oxygen saturation to stimulate the central nervous system with zero crash.",
+      benefits: isZh
+        ? "清晨大脑唤醒 · 击退午后困顿 · 纯自然专注"
+        : "Morning brain wake-up · Beat afternoon slump · Clean natural focus",
+      icon: Zap,
+      phases: [
+        {
+          phase: "inhale",
+          duration: 4,
+          title: isZh ? "吸气充氧 (4秒)" : "Inhale Fresh Energy (4s)",
+          guide: isZh ? "深长有力地吸气，将充足氧气输送至全身细胞。" : "Inhale deeply and briskly, drawing vibrant energy into your cells.",
+          sound: "inhale",
+          colorClass: "from-emerald-400 via-emerald-500 to-teal-500",
+          glowColor: "rgba(16, 185, 129, 0.45)",
+        },
+        {
+          phase: "hold",
+          duration: 2,
+          title: isZh ? "短暂停顿 (2秒)" : "Brief Hold (2s)",
+          guide: isZh ? "短暂停留 2 秒，感受充盈的氧气在身体各个角落流淌。" : "Brief 2-second pause as oxygen distributes through your body.",
+          sound: "hold",
+          colorClass: "from-teal-400 via-emerald-400 to-teal-500",
+          glowColor: "rgba(20, 184, 166, 0.45)",
+        },
+        {
+          phase: "exhale",
+          duration: 4,
+          title: isZh ? "有力呼气 (4秒)" : "Exhale Clear (4s)",
+          guide: isZh ? "平稳有力地将废气呼出，保持精神焕发与神清气爽。" : "Release smoothly through your nose or mouth, staying alert and clear.",
+          sound: "exhale",
+          colorClass: "from-emerald-500 via-teal-600 to-emerald-700",
+          glowColor: "rgba(16, 185, 129, 0.35)",
+        },
+      ],
+    },
+  ];
+}
 
-// Unified Green & White styling for 5-4-3-2-1 Sensory Grounding
-const GROUNDING_STEPS = [
-  {
-    count: 5,
-    icon: Eye,
-    sense: "Sight",
-    instruction: "Look around you. Notice and identify 5 distinct objects in your immediate vision (e.g., light on a wall, a plant, a coffee mug, window reflection).",
-    items: ["Object 1 in sight", "Object 2 in sight", "Object 3 in sight", "Object 4 in sight", "Object 5 in sight"],
-  },
-  {
-    count: 4,
-    icon: Hand,
-    sense: "Touch",
-    instruction: "Notice 4 physical touch sensations (e.g., feet grounding on the floor, texture of clothing, air on your skin, back against your chair).",
-    items: ["Feet on floor", "Fabric texture", "Air temperature", "Back against chair"],
-  },
-  {
-    count: 3,
-    icon: Ear,
-    sense: "Sound",
-    instruction: "Listen closely. Identify 3 external ambient sounds around you (e.g., hum of a fan, distant traffic/birds, your own steady breathing).",
-    items: ["Room ambient hum", "Distant exterior sound", "Rhythm of breath"],
-  },
-  {
-    count: 2,
-    icon: Wind,
-    sense: "Smell",
-    instruction: "Notice 2 scents in the air, or recall a comforting aroma you love (e.g., fresh rain, morning coffee, lavender, clean cedar).",
-    items: ["Present room scent", "Comforting aroma memory"],
-  },
-  {
-    count: 1,
-    icon: Smile,
-    sense: "Taste & Affirmation",
-    instruction: "Notice 1 lingering taste, take a sip of water, and affirm: 'I am safe and grounded in this present moment.'",
-    items: ["Mindful sip & 'I am safe' affirmation"],
-  },
-];
+// Unified Green & White styling for 5-4-3-2-1 Sensory Grounding (Bilingual support)
+function getGroundingSteps(lang: "en" | "zh") {
+  const isZh = lang === "zh";
+  return [
+    {
+      count: 5,
+      icon: Eye,
+      sense: isZh ? "视觉 (看)" : "Sight",
+      instruction: isZh
+        ? "环顾四周。寻找并辨认 5 件你视线范围内清晰可见的物品（如：墙上的光影、绿植叶片、水杯、窗外的景象）。"
+        : "Look around you. Notice and identify 5 distinct objects in your immediate vision (e.g., light on a wall, a plant, a coffee mug, window reflection).",
+      items: isZh
+        ? ["看清第 1 件物品", "看清第 2 件物品", "看清第 3 件物品", "看清第 4 件物品", "看清第 5 件物品"]
+        : ["Object 1 in sight", "Object 2 in sight", "Object 3 in sight", "Object 4 in sight", "Object 5 in sight"],
+    },
+    {
+      count: 4,
+      icon: Hand,
+      sense: isZh ? "触觉 (触)" : "Touch",
+      instruction: isZh
+        ? "感受身体与外界接触的 4 种物理触感（如：双脚踩在地面的支撑感、衣物布料的纹理、皮肤上的空气流动、背靠椅背的触感）。"
+        : "Notice 4 physical touch sensations (e.g., feet grounding on the floor, texture of clothing, air on your skin, back against your chair).",
+      items: isZh
+        ? ["脚底触地感", "衣物质感", "空气温度", "椅背支撑感"]
+        : ["Feet on floor", "Fabric texture", "Air temperature", "Back against chair"],
+    },
+    {
+      count: 3,
+      icon: Ear,
+      sense: isZh ? "听觉 (听)" : "Sound",
+      instruction: isZh
+        ? "静下心来仔细倾听。分辨 3 种周围环境的声音（如：电风扇的嗡嗡声、远处的车流或鸟鸣、自己平稳的呼吸声）。"
+        : "Listen closely. Identify 3 external ambient sounds around you (e.g., hum of a fan, distant traffic/birds, your own steady breathing).",
+      items: isZh
+        ? ["室内微弱环境音", "远处外部声响", "自己呼吸的声音"]
+        : ["Room ambient hum", "Distant exterior sound", "Rhythm of breath"],
+    },
+    {
+      count: 2,
+      icon: Wind,
+      sense: isZh ? "嗅觉 (闻)" : "Smell",
+      instruction: isZh
+        ? "留意空气中的 2 种气味，或者在脑海中回忆两种让你感到安心的气味（如：雨后泥土芬芳、咖啡香气、薰衣草香、雪松清香）。"
+        : "Notice 2 scents in the air, or recall a comforting aroma you love (e.g., fresh rain, morning coffee, lavender, clean cedar).",
+      items: isZh
+        ? ["空气中的气味", "回忆中安心的香气"]
+        : ["Present room scent", "Comforting aroma memory"],
+    },
+    {
+      count: 1,
+      icon: Smile,
+      sense: isZh ? "味觉与自我确认 (品)" : "Taste & Affirmation",
+      instruction: isZh
+        ? "留意口中残留的滋味，轻抿一小口温水，并在心中默念确认：“在此时此刻，我是全然安全与被接纳的。”"
+        : "Notice 1 lingering taste, take a sip of water, and affirm: 'I am safe and grounded in this present moment.'",
+      items: isZh
+        ? ["温和抿一口水并默念“我是安全的”"]
+        : ["Mindful sip & 'I am safe' affirmation"],
+    },
+  ];
+}
 
 export function BreatheSection({
   onNavigateToChat,
 }: {
   onNavigateToChat?: (customMessage?: string) => void;
 }) {
+  const { language, t } = useLanguage();
+  const techniques = useMemo(() => getTechniques(language), [language]);
+  const groundingSteps = useMemo(() => getGroundingSteps(language), [language]);
+
   const [selectedTechnique, setSelectedTechnique] = useState<BreathingTechnique>("4-7-8");
   const [isActive, setIsActive] = useState(false);
   const [phaseIndex, setPhaseIndex] = useState(0);
@@ -373,8 +440,8 @@ export function BreatheSection({
   const [idleBreathTick, setIdleBreathTick] = useState(0);
 
   const activeTechConfig = useMemo(
-    () => TECHNIQUES.find((t) => t.id === selectedTechnique) || TECHNIQUES[0],
-    [selectedTechnique]
+    () => techniques.find((t) => t.id === selectedTechnique) || techniques[0],
+    [techniques, selectedTechnique]
   );
   const currentPhaseConfig = activeTechConfig.phases[phaseIndex] || activeTechConfig.phases[0];
 
@@ -416,7 +483,7 @@ export function BreatheSection({
     setIsActive(false);
     setPhaseIndex(0);
     setPhaseProgress(0);
-    const target = TECHNIQUES.find((t) => t.id === tech);
+    const target = techniques.find((t) => t.id === tech);
     if (target) {
       setDisplaySecondsLeft(target.phases[0].duration);
     }
@@ -721,7 +788,7 @@ export function BreatheSection({
             </h4>
             {isSelected ? (
               <span className="inline-flex items-center gap-1 text-[10px] bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-2.5 py-0.5 rounded-full font-bold shrink-0 shadow-sm shadow-emerald-500/25">
-                <CheckCircle2 className="size-2.5" /> Active
+                <CheckCircle2 className="size-2.5" /> {language === "zh" ? "练习中" : "Active"}
               </span>
             ) : (
               <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/50 dark:border-emerald-500/20 px-2 py-0.5 rounded-full shrink-0 font-medium">
@@ -750,7 +817,7 @@ export function BreatheSection({
       <div className="breath-section-banner text-center max-w-2xl mx-auto space-y-2">
         <div className="breath-banner-eyebrow inline-flex items-center gap-2 rounded-full bg-white dark:bg-white/5 border border-emerald-200/60 dark:border-emerald-500/20 px-4 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300 backdrop-blur-md shadow-sm">
           <Wind className="size-3.5 text-emerald-500" />
-          <span>Somatic Nervous System Reset · Sanctuary</span>
+          <span>{language === "zh" ? "自主神经调节 · 呼吸疗愈空间" : "Somatic Nervous System Reset · Sanctuary"}</span>
         </div>
         <div className="breath-title-sparkles">
           <SparklesText
@@ -758,14 +825,16 @@ export function BreatheSection({
             sparklesCount={8}
             className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight text-foreground"
           >
-            <span>Mindful Breathing & Grounding </span>
+            <span>{language === "zh" ? "正念呼吸与减压 " : "Mindful Breathing & Grounding "}</span>
             <span className="text-emerald-600 dark:text-emerald-400 font-lato-light-italic font-normal pb-0.5 inline-block">
-              Sanctuary
+              {language === "zh" ? "疗愈空间" : "Sanctuary"}
             </span>
           </SparklesText>
         </div>
         <p className="breath-subtitle-desc text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-xl mx-auto font-lato-light-italic">
-          7 clinical evidence-based breathwork and grounding protocols. Select a technique to begin soothing your nervous system within 60 seconds.
+          {language === "zh"
+            ? "7 种基于临床实证的呼吸调息与感官着陆方法。选择一种练习，在 60 秒内舒缓你的神经系统。"
+            : "7 clinical evidence-based breathwork and grounding protocols. Select a technique to begin soothing your nervous system within 60 seconds."}
         </p>
       </div>
 
@@ -776,21 +845,23 @@ export function BreatheSection({
           <div className="flex items-center justify-between px-1 pb-2">
             <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
               <Sparkles className="size-3.5 text-emerald-500" />
-              <span>Select Technique</span>
+              <span>{language === "zh" ? "选择呼吸练习" : "Select Technique"}</span>
             </span>
             <span className="text-[11px] font-mono text-emerald-700 dark:text-emerald-300 bg-white dark:bg-white/5 border border-emerald-200/60 dark:border-emerald-500/20 px-2.5 py-0.5 rounded-full font-semibold shadow-sm">
-              7 Clinical Protocols
+              {language === "zh" ? "7 种科学调息法则" : "7 Clinical Protocols"}
             </span>
           </div>
 
           <div className="space-y-2.5">
-            {TECHNIQUES.map(renderTechniqueCard)}
+            {techniques.map(renderTechniqueCard)}
             {renderTechniqueCard({
               id: "54321",
-              name: "5-4-3-2-1 Somatic Grounding",
-              timingBadge: "5 Senses",
-              desc: "Clinical sensory grounding to pull racing minds out of amygdala panic and anchor attention firmly in the present.",
-              badge: "Panic & Rumination Reset",
+              name: language === "zh" ? "5-4-3-2-1 感官着陆练习" : "5-4-3-2-1 Somatic Grounding",
+              timingBadge: language === "zh" ? "五感调动" : "5 Senses",
+              desc: language === "zh"
+                ? "调动五感逐步感知环境，阻断杏仁核焦虑风暴，将注意力重新锚定在平静的当下。"
+                : "Clinical sensory grounding to pull racing minds out of amygdala panic and anchor attention firmly in the present.",
+              badge: language === "zh" ? "惊恐与反刍阻断" : "Panic & Rumination Reset",
               icon: ShieldCheck,
             })}
           </div>
@@ -831,7 +902,7 @@ export function BreatheSection({
                     ) : (
                       <Volume2 className="size-3.5 text-emerald-600 dark:text-emerald-400" />
                     )}
-                    <span className="text-[11px]">{isSoundMuted ? "Bowl: Off" : "432Hz Bowl: On"}</span>
+                    <span className="text-[11px]">{isSoundMuted ? (language === "zh" ? "颂钵: 静音" : "Bowl: Off") : (language === "zh" ? "432Hz 颂钵: 开启" : "432Hz Bowl: On")}</span>
                   </Button>
                 </div>
 
@@ -863,17 +934,17 @@ export function BreatheSection({
                       ) : (
                         <Leaf className="size-3" />
                       )}
-                      {isActive ? currentPhaseConfig.title : "Ready to Begin"}
+                      {isActive ? currentPhaseConfig.title : (language === "zh" ? "准备开始" : "Ready to Begin")}
                     </span>
                     {isActive && (
                       <span className="text-[11px] font-mono text-emerald-700 dark:text-emerald-300 font-semibold bg-white dark:bg-white/10 border border-emerald-200/60 dark:border-emerald-500/20 px-2.5 py-0.5 rounded-full shadow-sm">
-                        Lung Capacity ~{lungPercent}%
+                        {language === "zh" ? "肺容积" : "Lung Capacity"} ~{lungPercent}%
                       </span>
                     )}
                   </div>
 
                   <p className="text-xs sm:text-sm text-foreground/80 font-medium max-w-md h-8 flex items-center justify-center transition-all duration-300 leading-snug px-3">
-                    {isActive ? currentPhaseConfig.guide : "Click start below to synchronize your breathing with the living orb."}
+                    {isActive ? currentPhaseConfig.guide : (language === "zh" ? "点击下方按钮，跟随愈疗呼吸球同步呼吸节奏。" : "Click start below to synchronize your breathing with the living orb.")}
                   </p>
                 </div>
 
@@ -1154,7 +1225,7 @@ export function BreatheSection({
                           <Play className="size-5 fill-white text-white ml-0.5 drop-shadow-sm" />
                         </div>
                         <span className="text-[11px] font-extrabold tracking-widest uppercase text-emerald-700 dark:text-emerald-700">
-                          Start
+                          {language === "zh" ? "开始" : "Start"}
                         </span>
                       </div>
                     )}
@@ -1170,12 +1241,12 @@ export function BreatheSection({
                     {isActive ? (
                       <>
                         <Pause className="size-4 text-white" />
-                        <span>Pause Practice</span>
+                        <span>{language === "zh" ? "暂停练习" : "Pause Practice"}</span>
                       </>
                     ) : (
                       <>
                         <Play className="size-4 fill-white text-white" />
-                        <span>Start Breathing</span>
+                        <span>{language === "zh" ? "开始练习" : "Start Breathing"}</span>
                       </>
                     )}
                   </Button>
@@ -1187,7 +1258,7 @@ export function BreatheSection({
                     title="Reset session"
                   >
                     <RotateCcw className="size-3.5" />
-                    <span className="text-xs hidden sm:inline">Reset</span>
+                    <span className="text-xs hidden sm:inline">{language === "zh" ? "重置" : "Reset"}</span>
                   </Button>
                 </div>
 
@@ -1195,7 +1266,7 @@ export function BreatheSection({
                 <div className="w-full p-3.5 rounded-2xl bg-gradient-to-r from-emerald-50/60 via-white to-teal-50/40 dark:from-emerald-50/10 dark:via-white/5 dark:to-teal-50/8 border border-emerald-200/70 dark:border-emerald-500/20 text-xs text-muted-foreground flex items-start gap-2.5 shadow-sm backdrop-blur-sm">
                   <Info className="size-4 text-emerald-500 shrink-0 mt-0.5" />
                   <div className="space-y-0.5 leading-relaxed text-left">
-                    <span className="font-bold text-emerald-800 dark:text-emerald-200">Neurophysiological Mechanism:</span>
+                    <span className="font-bold text-emerald-800 dark:text-emerald-200">{language === "zh" ? "神经生理学机制：" : "Neurophysiological Mechanism:"}</span>
                     <p className="text-[11px] leading-relaxed">{activeTechConfig.mechanism}</p>
                   </div>
                 </div>
@@ -1204,10 +1275,10 @@ export function BreatheSection({
                 <div className="flex flex-col sm:flex-row items-center justify-between w-full pt-1 text-xs text-muted-foreground z-10 gap-2 border-t border-emerald-500/10">
                   <div className="flex items-center gap-2 font-medium">
                     <CheckCircle2 className="size-3.5 text-emerald-500" />
-                    <span>Completed: <strong className="text-foreground text-sm font-mono">{completedCycles}</strong> Cycles</span>
+                    <span>{language === "zh" ? "已完成：" : "Completed:"} <strong className="text-foreground text-sm font-mono">{completedCycles}</strong> {language === "zh" ? "周期" : "Cycles"}</span>
                     {completedCycles > 0 && (
                       <span className="inline-flex items-center gap-1 text-[10px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-semibold px-2.5 py-0.5 rounded-full">
-                        <Flame className="size-3 text-emerald-600 dark:text-emerald-400" /> Streak Active
+                        <Flame className="size-3 text-emerald-600 dark:text-emerald-400" /> {language === "zh" ? "连续练习中" : "Streak Active"}
                       </span>
                     )}
                   </div>
@@ -1222,19 +1293,19 @@ export function BreatheSection({
                 <div className="space-y-1">
                   <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-3.5 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
                     <ShieldCheck className="size-3.5" />
-                    <span>5-4-3-2-1 Somatic Grounding Technique</span>
+                    <span>{language === "zh" ? "5-4-3-2-1 感官着陆技术" : "5-4-3-2-1 Somatic Grounding Technique"}</span>
                   </div>
                   <h3 className="text-lg font-bold text-foreground">
-                    Acute Panic, Anxiety & Rumination Reset
+                    {language === "zh" ? "急性惊恐、焦虑与反刍思绪重置" : "Acute Panic, Anxiety & Rumination Reset"}
                   </h3>
                   <p className="text-xs text-muted-foreground leading-relaxed font-lato-light-italic">
-                    Anchor your sensory cortices by clicking through the real-time physical touchpoints below:
+                    {language === "zh" ? "通过逐步点击勾选下方的感官锚点，激活感觉皮层，阻断大脑警报回路：" : "Anchor your sensory cortices by clicking through the real-time physical touchpoints below:"}
                   </p>
                 </div>
 
                 {/* Grounding Step Cards (Harmonious Emerald Palette) */}
                 <div className="space-y-2.5">
-                  {GROUNDING_STEPS.map((step, idx) => {
+                  {groundingSteps.map((step, idx) => {
                     const Icon = step.icon;
                     const isCurrent = activeGroundingStep === idx;
                     const checkedList = checkedGroundingItems[idx] || [];
@@ -1261,15 +1332,15 @@ export function BreatheSection({
                           <div className="flex-1 space-y-0.5 text-left">
                             <div className="flex items-center justify-between">
                               <span className="text-xs font-bold text-foreground">
-                                Step {idx + 1}: Notice {step.count} Things · {step.sense}
+                                {language === "zh" ? `第 ${idx + 1} 步：留意 ${step.count} 件事物 · ${step.sense}` : `Step ${idx + 1}: Notice ${step.count} Things · ${step.sense}`}
                               </span>
                               {allChecked ? (
                                 <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
-                                  <Check className="size-3" /> Step Anchored
+                                  <Check className="size-3" /> {language === "zh" ? "步骤已完成" : "Step Anchored"}
                                 </span>
                               ) : isCurrent ? (
                                 <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
-                                  Active Focus
+                                  {language === "zh" ? "当前专注" : "Active Focus"}
                                 </span>
                               ) : null}
                             </div>
@@ -1329,11 +1400,11 @@ export function BreatheSection({
                     onClick={() => setActiveGroundingStep((prev) => Math.max(0, prev - 1))}
                     className="rounded-full text-xs cursor-pointer bg-white dark:bg-emerald-50/10 border-emerald-300/60 dark:border-emerald-500/25 font-medium text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-50/15"
                   >
-                    Previous
+                    {language === "zh" ? "上一步" : "Previous"}
                   </Button>
 
                   <div className="text-xs font-bold text-muted-foreground font-mono">
-                    Step {activeGroundingStep + 1} of {GROUNDING_STEPS.length}
+                    {language === "zh" ? `第 ${activeGroundingStep + 1} 步 / 共 ${groundingSteps.length} 步` : `Step ${activeGroundingStep + 1} of ${groundingSteps.length}`}
                   </div>
 
                   <Button
@@ -1347,7 +1418,7 @@ export function BreatheSection({
                     }}
                     className="rounded-full text-xs px-5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold cursor-pointer shadow-md shadow-emerald-600/20"
                   >
-                    {activeGroundingStep === 4 ? "Complete Grounding ✨" : "Next Sense →"}
+                    {activeGroundingStep === 4 ? (language === "zh" ? "完成着陆练习 ✨" : "Complete Grounding ✨") : (language === "zh" ? "下一个感官 →" : "Next Sense →")}
                   </Button>
                 </div>
               </div>
@@ -1365,19 +1436,19 @@ export function BreatheSection({
             </div>
             <div>
               <div className="text-xs font-bold text-foreground">
-                Feeling more grounded? Ready to explore your thoughts?
+                {language === "zh" ? "身心感觉更加平稳了吗？准备好聊聊心事了吗？" : "Feeling more grounded? Ready to explore your thoughts?"}
               </div>
               <div className="text-[11px] text-muted-foreground leading-normal mt-0.5 font-lato-light-italic">
-                Connect with your AI counselor (Maya / Liam) in a safe, confidential sanctuary for gentle CBT guidance.
+                {language === "zh" ? "在安全私密的愈心空间中，与你的专属咨询伙伴 (Maya / Liam) 展开温和的 CBT 倾诉与思绪梳理。" : "Connect with your AI counselor (Maya / Liam) in a safe, confidential sanctuary for gentle CBT guidance."}
               </div>
             </div>
           </div>
           <Button
-            onClick={() => onNavigateToChat("I just completed a mindful breathing session and felt my body calm down.")}
+            onClick={() => onNavigateToChat(language === "zh" ? "我刚完成了一次呼吸减压练习，感觉身心平静了许多。" : "I just completed a mindful breathing session and felt my body calm down.")}
             size="sm"
             className="rounded-full text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold gap-1.5 shrink-0 px-4 py-2 cursor-pointer shadow-md shadow-emerald-600/20"
           >
-            <span>Talk with Counselor</span>
+            <span>{language === "zh" ? "与咨询师倾诉" : "Talk with Counselor"}</span>
             <ArrowRight className="size-3.5" />
           </Button>
         </div>

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Phone, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/lib/i18n";
 
 export type VoiceCallPhase = "form" | "creating" | "calling";
 
@@ -33,6 +34,8 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({
   callStatusText,
   onStartCall,
 }) => {
+  const { language } = useLanguage();
+  const isZh = language === "zh";
   const [isClosing, setIsClosing] = useState(false);
   const closingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -87,7 +90,7 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm font-semibold text-emerald-950 dark:text-emerald-50">
             <Phone className="size-4 text-emerald-600" />
-            <span>Call Me · {counselorName}</span>
+            <span>{isZh ? `电话关怀 · ${counselorName}` : `Call Me · ${counselorName}`}</span>
           </div>
           <button
             aria-label="Close call dialog"
@@ -109,10 +112,10 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({
                 aria-live="polite"
                 className="text-sm font-semibold text-emerald-950 dark:text-emerald-50"
               >
-                {callStatusText || "Dialing in progress..."}
+                {callStatusText || (isZh ? "电话拨打中..." : "Dialing in progress...")}
               </p>
               <p className="text-xs text-emerald-900/70 dark:text-emerald-100/70 leading-relaxed">
-                Your phone will ring shortly. You can minimize this window and continue chatting here.
+                {isZh ? "您的手机很快就会响起。您可以最小化此窗口并在当前页面继续交谈。" : "Your phone will ring shortly. You can minimize this window and continue chatting here."}
               </p>
             </div>
             <Button
@@ -121,26 +124,26 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({
               onClick={startClosing}
               className="rounded-xl border-emerald-500/30 text-xs px-4 text-emerald-800 dark:text-emerald-200 hover:bg-emerald-500/10 cursor-pointer"
             >
-              Keep Chatting (Minimize)
+              {isZh ? "继续文字对话 (最小化)" : "Keep Chatting (Minimize)"}
             </Button>
           </div>
         ) : (
           <div className="space-y-3">
             <p className="text-xs leading-relaxed text-emerald-900/70 dark:text-emerald-100/70">
-              {counselorName} will call you for a gentle, supportive check-in (about 5–10
-              minutes). This is an AI companion call — not a medical or emergency service. Your
-              number is used only to place this call and is never stored.
+              {isZh
+                ? `${counselorName} 将给您拨打电话，进行一次温柔温和的关怀通话（约 5–10 分钟）。这是 AI 陪伴关怀通话，非紧急医疗救援。您的电话号码仅用于本次通话，绝不持久存储。`
+                : `${counselorName} will call you for a gentle, supportive check-in (about 5–10 minutes). This is an AI companion call — not a medical or emergency service. Your number is used only to place this call and is never stored.`}
             </p>
             <div className="space-y-1">
               <input
                 className="w-full rounded-xl border border-emerald-500/30 bg-white px-3 py-2 text-sm text-emerald-950 placeholder:text-emerald-950/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 dark:bg-emerald-950/40 dark:text-emerald-50 dark:placeholder:text-emerald-50/40"
                 onChange={(e) => onPhoneChange(e.target.value)}
-                placeholder="+1 212 555 0123"
+                placeholder={isZh ? "+86 138 0000 0000" : "+1 212 555 0123"}
                 type="tel"
                 value={callPhone}
               />
               <p className="text-[10px] text-emerald-900/50 dark:text-emerald-100/50 px-1">
-                Format: +[country code][number], e.g. +1 212 555 0123 or +86 138 0000 0000
+                {isZh ? "格式：+[国家/地区代码][手机号]，例如 +86 138 0000 0000 或 +1 212 555 0123" : "Format: +[country code][number], e.g. +1 212 555 0123 or +86 138 0000 0000"}
               </p>
             </div>
             <label className="flex cursor-pointer items-start gap-2 text-xs text-emerald-900/70 dark:text-emerald-100/70">
@@ -151,8 +154,7 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({
                 type="checkbox"
               />
               <span>
-                I consent to receive an AI voice call at this number. In crisis, call or text
-                988 (US/Canada).
+                {isZh ? "我同意接收拨打至此号码的 AI 语音通话。如遇危急紧急情况，请拨打 120/110 或全国心理援助热线。" : "I consent to receive an AI voice call at this number. In crisis, call or text 988 (US/Canada)."}
               </span>
             </label>
             {callError && <p className="text-xs text-rose-600 dark:text-rose-400 font-medium">{callError}</p>}
@@ -162,7 +164,7 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({
               onClick={onStartCall}
               type="button"
             >
-              {callPhase === "creating" ? "Scheduling your call..." : "Call me now 📞"}
+              {callPhase === "creating" ? (isZh ? "正在安排您的通话..." : "Scheduling your call...") : (isZh ? "立即拨打 📞" : "Call me now 📞")}
             </Button>
           </div>
         )}

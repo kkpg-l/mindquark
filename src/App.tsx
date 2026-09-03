@@ -9,8 +9,9 @@ import { GuideSection } from "@/components/GuideSection";
 import { MeSection } from "@/components/MeSection";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { IntroSplash } from "@/components/IntroSplash";
+import { LanguageProvider } from "@/lib/i18n";
 
-export default function App() {
+function SanctuaryApp() {
   const [currentTab, setCurrentTab] = useState<NavTab>("hero");
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [showIntro, setShowIntro] = useState(true);
@@ -138,5 +139,13 @@ export default function App() {
         {currentTab === "me" && <MeSection />}
       </main>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <LanguageProvider>
+      <SanctuaryApp />
+    </LanguageProvider>
   );
 }

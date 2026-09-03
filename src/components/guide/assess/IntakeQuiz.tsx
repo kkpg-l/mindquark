@@ -8,7 +8,8 @@ import { cn } from "@/lib/utils";
 import { chimeAudio } from "@/lib/chimeAudio";
 import { isHighRiskText, getCrisisFallback } from "@/lib/safety";
 import type { AttentionArea } from "@/lib/cognitiveEngine";
-import { QUIZ_QUESTIONS, ATTENTION_AREA_LABELS } from "./quizQuestions";
+import { QUIZ_QUESTIONS, ATTENTION_AREA_LABELS, ATTENTION_AREA_LABELS_ZH } from "./quizQuestions";
+import { useLanguage } from "@/lib/i18n";
 
 export interface QuizAnswers {
   lowFrequency: number;
@@ -46,6 +47,8 @@ export const IntakeQuiz: React.FC<{
   onComplete: (answers: QuizAnswers) => void;
   onBack: () => void;
 }> = ({ onComplete, onBack }) => {
+  const { language } = useLanguage();
+  const isZh = language === "zh";
   const [qIndex, setQIndex] = useState(0);
   const [answers, setAnswers] = useState<AnswerRecord>({});
   const [pendingOption, setPendingOption] = useState<number | null>(null);
@@ -151,20 +154,23 @@ export const IntakeQuiz: React.FC<{
         <div ref={stepRef} className="space-y-5">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-mono text-muted-foreground">
-              Question {qIndex + 1} / {total}
+              {isZh ? `第 ${qIndex + 1} 题 / 共 ${total} 题` : `Question ${qIndex + 1} / ${total}`}
             </span>
-            {question.hint && (
-              <span className="text-[11px] text-muted-foreground font-lato-light-italic">{question.hint}</span>
+            {(question.hint || question.hintZh) && (
+              <span className="text-[11px] text-muted-foreground font-lato-light-italic">
+                {isZh && question.hintZh ? question.hintZh : question.hint}
+              </span>
             )}
           </div>
 
           <h3 className="text-lg sm:text-xl font-bold text-foreground leading-snug">
-            {question.question}
+            {isZh && question.questionZh ? question.questionZh : question.question}
           </h3>
 
           {(question.type === "scale" || question.type === "choice") &&
             question.options?.map((option) => {
               const selected = answers[question.id] === option.value;
+              const displayLabel = isZh && option.labelZh ? option.labelZh : option.label;
               return (
                 <button
                   key={option.value}
@@ -176,7 +182,7 @@ export const IntakeQuiz: React.FC<{
                       : "border-muted-foreground/15 text-foreground/85 hover:border-emerald-500/40 hover:bg-emerald-500/5"
                   )}
                 >
-                  {option.label}
+                  {displayLabel}
                 </button>
               );
             })}
@@ -199,7 +205,7 @@ export const IntakeQuiz: React.FC<{
                         : "border-muted-foreground/15 text-foreground/85 hover:border-emerald-500/40 hover:bg-emerald-500/5"
                     )}
                   >
-                    {ATTENTION_AREA_LABELS[area]}
+                    {isZh ? ATTENTION_AREA_LABELS_ZH[area] || ATTENTION_AREA_LABELS[area] : ATTENTION_AREA_LABELS[area]}
                   </button>
                 );
               })}
@@ -213,6 +219,7 @@ export const IntakeQuiz: React.FC<{
                   ? (answers[question.id] as string[])
                   : [];
                 const selected = current.includes(option.label);
+                const displayLabel = isZh && option.labelZh ? option.labelZh : option.label;
                 return (
                   <button
                     key={option.value}
@@ -224,7 +231,7 @@ export const IntakeQuiz: React.FC<{
                         : "border-muted-foreground/15 text-foreground/85 hover:border-emerald-500/40 hover:bg-emerald-500/5"
                     )}
                   >
-                    {option.label}
+                    {displayLabel}
                   </button>
                 );
               })}
@@ -235,7 +242,7 @@ export const IntakeQuiz: React.FC<{
             <textarea
               value={typeof answers[question.id] === "string" ? (answers[question.id] as string) : ""}
               onChange={(e) => handleTextChange(e.target.value)}
-              placeholder={question.placeholder}
+              placeholder={isZh && question.placeholderZh ? question.placeholderZh : question.placeholder}
               rows={4}
               maxLength={600}
               className="w-full rounded-xl border border-muted-foreground/15 bg-background/60 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/40 resize-none"
@@ -246,7 +253,7 @@ export const IntakeQuiz: React.FC<{
             <div className="rounded-2xl border border-rose-500/40 bg-rose-500/10 p-4 space-y-1.5">
               <div className="flex items-center gap-2 text-rose-600 dark:text-rose-300 text-xs font-semibold">
                 <ShieldAlert className="size-4" />
-                <span>Your safety comes first</span>
+                <span>{isZh ? "你的身心安全永远排在第一位" : "Your safety comes first"}</span>
               </div>
               <p className="text-xs text-foreground/80 leading-relaxed">{crisisText}</p>
             </div>
@@ -258,19 +265,19 @@ export const IntakeQuiz: React.FC<{
         <Button
           variant="ghost"
           onClick={qIndex === 0 ? onBack : () => goTo(qIndex - 1)}
-          className="rounded-full text-muted-foreground hover:text-foreground hover:bg-emerald-500/10 gap-1"
+          className="rounded-full text-muted-foreground hover:text-foreground hover:bg-emerald-500/10 gap-1 cursor-pointer"
         >
           <ChevronLeft className="size-4" />
-          {qIndex === 0 ? "Leave quiz" : "Back"}
+          {qIndex === 0 ? (isZh ? "退出问卷" : "Leave quiz") : (isZh ? "上一题" : "Back")}
         </Button>
 
         {(question.type === "multi" || question.type === "text") && (
           <Button
             onClick={handleNext}
             disabled={!!crisisText}
-            className="rounded-full bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
+            className="rounded-full bg-emerald-600 hover:bg-emerald-700 text-white gap-1 cursor-pointer"
           >
-            {isLast ? "See my report" : "Continue"}
+            {isLast ? (isZh ? "查看我的评估报告" : "See my report") : (isZh ? "继续" : "Continue")}
             <ChevronRight className="size-4" />
           </Button>
         )}

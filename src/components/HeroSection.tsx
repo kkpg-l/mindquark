@@ -16,6 +16,7 @@ import {
   HeartHandshake,
 } from "lucide-react";
 import { type NavTab } from "./Navbar";
+import { useLanguage } from "@/lib/i18n";
 
 interface HeroSectionProps {
   onStartChat: (initialPrompt?: string) => void;
@@ -27,30 +28,31 @@ interface MoodBubble {
   prompt: string;
 }
 
-const MOOD_BUBBLES: MoodBubble[] = [
-  {
-    text: "😰 Feeling overwhelmed & spiraling",
-    prompt: "I'm feeling really overwhelmed with work and life lately, and my thoughts keep spiraling...",
-  },
-  {
-    text: "😴 Drained by burnout & insomnia",
-    prompt: "I can't seem to sleep well because my mind won't shut off, and I feel completely exhausted.",
-  },
-  {
-    text: "💔 Struggling with relationship stress",
-    prompt: "Interpersonal conflicts have been draining me emotionally, and I keep second-guessing myself.",
-  },
-  {
-    text: "🌱 Seeking calm & mindfulness",
-    prompt: "I'd like to practice mindfulness and ground myself to find inner peace today.",
-  },
-];
-
 export const HeroSection: React.FC<HeroSectionProps> = ({
   onStartChat,
   onNavigate,
 }) => {
   const heroRef = useRef<HTMLDivElement>(null);
+  const { language, t } = useLanguage();
+
+  const moodBubbles: MoodBubble[] = [
+    {
+      text: t("hero.bubbleOverwhelmed"),
+      prompt: t("hero.bubbleOverwhelmedPrompt"),
+    },
+    {
+      text: t("hero.bubbleBurnout"),
+      prompt: t("hero.bubbleBurnoutPrompt"),
+    },
+    {
+      text: t("hero.bubbleRelationship"),
+      prompt: t("hero.bubbleRelationshipPrompt"),
+    },
+    {
+      text: t("hero.bubbleCalm"),
+      prompt: t("hero.bubbleCalmPrompt"),
+    },
+  ];
 
   // GSAP staggered entrance on first paint; clearProps hands transform back to CSS hover
   useGSAP(
@@ -84,13 +86,13 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         {/* Eyebrow badge with glowing emerald border */}
         <div className="hero-badge mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 dark:bg-emerald-950/40 px-4 py-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-300 backdrop-blur-md shadow-xs">
           <Sparkles className="size-3.5 text-emerald-600 dark:text-emerald-400" />
-          <span className="font-lato-light-italic">Grounded in Evidence-Based CBT & Mindful Psychology</span>
+          <span className="font-lato-light-italic">{t("hero.badge")}</span>
         </div>
 
         {/* Hero Title using SparklesText */}
         <div className="hero-title my-2">
           <SparklesText
-            text="MindQuark Sanctuary"
+            text={t("hero.title", "MindQuark Sanctuary")}
             colors={{ first: "#0d9488", second: "#10b981" }}
             className="text-4xl sm:text-6xl md:text-7xl font-light tracking-tight text-foreground"
           />
@@ -98,7 +100,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
         {/* Poetic Subtitle in Lato Light / Thin Italic */}
         <p className="hero-sub mt-3.5 max-w-2xl text-sm sm:text-base md:text-lg font-lato-light-italic text-foreground/60 dark:text-foreground/55 font-light leading-relaxed tracking-wide">
-          "Your 24/7 quiet harbor for mental health & emotional coaching. A safe, gentle space to deconstruct anxiety and rediscover inner stillness."
+          {t("hero.sub")}
         </p>
 
         {/* CTA Buttons */}
@@ -109,7 +111,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             className="rounded-full px-8 gap-2 text-base font-normal bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/25 hover:scale-105 transition-all cursor-pointer"
           >
             <MessageCircleHeart className="size-5" />
-            <span>Begin Mindful Chat</span>
+            <span>{t("hero.startChat")}</span>
             <ArrowRight className="size-4" />
           </Button>
 
@@ -120,17 +122,17 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             className="rounded-full px-6 gap-2 text-base border-emerald-600/25 bg-background/80 hover:bg-emerald-500/10 text-foreground backdrop-blur-md font-light shadow-xs cursor-pointer"
           >
             <HeartPulse className="size-5 text-emerald-500" />
-            <span>Explore Mood Radar</span>
+            <span>{t("hero.exploreMood")}</span>
           </Button>
         </div>
 
         {/* Quick Mood Entry Pills */}
         <div className="mt-10 w-full max-w-2xl">
           <p className="hero-hint text-xs font-semibold text-emerald-900 dark:text-emerald-300 mb-3 font-lato-light-italic">
-            💡 What is resting on your mind today? Click to begin gently:
+            {t("hero.hint")}
           </p>
           <div className="flex flex-wrap justify-center gap-2">
-            {MOOD_BUBBLES.map((item, idx) => (
+            {moodBubbles.map((item, idx) => (
               <button
                 key={idx}
                 onClick={() => onStartChat(item.prompt)}
@@ -153,9 +155,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             <div className="size-11 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-xs">
               <BrainCircuit className="size-6" />
             </div>
-            <h3 className="font-normal text-base text-foreground mb-1.5">CBT Cognitive Reframing</h3>
+            <h3 className="font-normal text-base text-foreground mb-1.5">{t("hero.card1Title")}</h3>
             <p className="text-xs sm:text-sm text-muted-foreground font-light leading-relaxed">
-              Deconstruct all-or-nothing and catastrophizing mindsets with evidence-based psychological reframing.
+              {t("hero.card1Desc")}
             </p>
           </Card>
 
@@ -166,9 +168,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             <div className="size-11 rounded-2xl bg-emerald-500/15 text-emerald-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-xs">
               <Compass className="size-6" />
             </div>
-            <h3 className="font-normal text-base text-foreground mb-1.5">Dual-Axis Mood Radar</h3>
+            <h3 className="font-normal text-base text-foreground mb-1.5">{t("hero.card2Title")}</h3>
             <p className="text-xs sm:text-sm text-muted-foreground font-light leading-relaxed">
-              Track energy levels and emotional valence, paired with 5-4-3-2-1 sensory grounding techniques.
+              {t("hero.card2Desc")}
             </p>
           </Card>
 
@@ -179,9 +181,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             <div className="size-11 rounded-2xl bg-teal-500/15 text-teal-600 dark:text-teal-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-xs">
               <HeartHandshake className="size-6" />
             </div>
-            <h3 className="font-normal text-base text-foreground mb-1.5">Gentle Perspectives & Real-Time Call</h3>
+            <h3 className="font-normal text-base text-foreground mb-1.5">{t("hero.card3Title")}</h3>
             <p className="text-xs sm:text-sm text-muted-foreground font-light leading-relaxed">
-              Connect with Maya or Liam via mindful chat, voice dictation, or a gentle real-time AI phone check-in call.
+              {t("hero.card3Desc")}
             </p>
           </Card>
         </div>
@@ -189,7 +191,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         {/* Privacy Note */}
         <div className="hero-privacy mt-8 text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1.5 font-lato-light-italic">
           <ShieldCheck className="size-3.5 text-emerald-600 dark:text-emerald-400" />
-          <span>Client privacy guaranteed • Strict adherence to ethical psychological boundaries</span>
+          <span>{t("hero.privacy")}</span>
         </div>
       </div>
     </div>

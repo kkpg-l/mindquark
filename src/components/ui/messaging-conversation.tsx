@@ -48,6 +48,7 @@ import { ThinkingOrb } from "thinking-orbs";
 import { IFlytekVoiceDictation } from "@/lib/iflytekSpeech";
 import { ttsPlayer } from "@/lib/iflytekTTS";
 import { VoiceCallModal, type VoiceCallPhase } from "@/components/VoiceCallModal";
+import { useLanguage } from "@/lib/i18n";
 
 type StatusType = "online" | "dnd" | "offline";
 
@@ -92,17 +93,20 @@ function UserActionsMenu({
   autoSpeak,
   onToggleAutoSpeak,
   onOpenCallModal,
+  language = "en",
 }: {
   onClear?: () => void;
   autoSpeak?: boolean;
   onToggleAutoSpeak?: () => void;
   onOpenCallModal?: () => void;
+  language?: string;
 }) {
+  const isZh = language === "zh";
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          aria-label="User actions"
+          aria-label={isZh ? "更多操作" : "User actions"}
           className="size-8 rounded-full border-muted-foreground/30 text-muted-foreground hover:text-foreground"
           size="icon"
           type="button"
@@ -126,7 +130,7 @@ function UserActionsMenu({
               variant="ghost"
             >
               <Phone aria-hidden="true" className="size-4 text-emerald-600 dark:text-emerald-400" focusable="false" />
-              <span>Call Me (AI Phone Call)</span>
+              <span>{isZh ? "发起电话关怀 (AI 电话)" : "Call Me (AI Phone Call)"}</span>
             </Button>
           )}
 
@@ -138,7 +142,7 @@ function UserActionsMenu({
             variant="ghost"
           >
             {autoSpeak ? <Volume2 className="size-4 text-primary" /> : <VolumeX className="size-4 text-muted-foreground" />}
-            <span>{autoSpeak ? "Auto Voice: On" : "Auto Voice: Off"}</span>
+            <span>{isZh ? (autoSpeak ? "自动朗读: 开启" : "自动朗读: 关闭") : (autoSpeak ? "Auto Voice: On" : "Auto Voice: Off")}</span>
           </Button>
 
           <Button
@@ -149,7 +153,7 @@ function UserActionsMenu({
             variant="ghost"
           >
             <Trash2 aria-hidden="true" className="size-4" focusable="false" />
-            <span>Delete Conversation</span>
+            <span>{isZh ? "清空当前对话" : "Delete Conversation"}</span>
           </Button>
 
           <Button
@@ -159,7 +163,7 @@ function UserActionsMenu({
             variant="ghost"
           >
             <UserMinus2 aria-hidden="true" className="size-4" focusable="false" />
-            <span>Block Persona</span>
+            <span>{isZh ? "切换咨询师" : "Block Persona"}</span>
           </Button>
 
           <Button
@@ -169,7 +173,7 @@ function UserActionsMenu({
             variant="ghost"
           >
             <Flag aria-hidden="true" className="size-4" focusable="false" />
-            <span>Report Concern</span>
+            <span>{isZh ? "反馈与帮助" : "Report Concern"}</span>
           </Button>
         </div>
       </DropdownMenuContent>
@@ -183,17 +187,20 @@ function MessageActions({
   onCopy,
   onDelete,
   onReply,
+  language = "en",
 }: {
   isMe: boolean;
   onCopy?: () => void;
   onDelete?: () => void;
   onReply?: () => void;
+  language?: string;
 }) {
+  const isZh = language === "zh";
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          aria-label="Message actions"
+          aria-label={isZh ? "消息操作" : "Message actions"}
           className="size-7 rounded bg-background hover:bg-accent shadow-xs"
           size="icon"
           type="button"
@@ -213,51 +220,51 @@ function MessageActions({
         <div className="flex flex-col gap-1">
           <Button
             onClick={onReply}
-            aria-label="Reply"
+            aria-label={isZh ? "引用回复" : "Reply"}
             className="w-full justify-start gap-2 rounded-lg px-2.5 py-1 text-xs transition-[background-color] duration-150"
             size="sm"
             type="button"
             variant="ghost"
           >
             <Reply aria-hidden="true" className="size-3.5" focusable="false" />
-            <span>Reply</span>
+            <span>{isZh ? "引用回复" : "Reply"}</span>
           </Button>
 
           <Button
             onClick={onCopy}
-            aria-label="Copy"
+            aria-label={isZh ? "复制内容" : "Copy"}
             className="w-full justify-start gap-2 rounded-lg px-2.5 py-1 text-xs transition-[background-color] duration-150"
             size="sm"
             type="button"
             variant="ghost"
           >
             <Copy aria-hidden="true" className="size-3.5" focusable="false" />
-            <span>Copy</span>
+            <span>{isZh ? "复制内容" : "Copy"}</span>
           </Button>
 
           {isMe && (
             <Button
               onClick={onDelete}
-              aria-label="Delete"
+              aria-label={isZh ? "删除" : "Delete"}
               className="w-full justify-start gap-2 rounded-lg px-2.5 py-1 text-destructive text-xs transition-[background-color] duration-150 hover:bg-destructive/10"
               size="sm"
               type="button"
               variant="ghost"
             >
               <Trash2 aria-hidden="true" className="size-3.5" focusable="false" />
-              <span>Delete</span>
+              <span>{isZh ? "删除" : "Delete"}</span>
             </Button>
           )}
 
           <Button
-            aria-label="Report"
+            aria-label={isZh ? "反馈" : "Report"}
             className="w-full justify-start gap-2 rounded-lg px-2.5 py-1 text-xs transition-[background-color] duration-150 text-yellow-600 hover:bg-yellow-500/10"
             size="sm"
             type="button"
             variant="ghost"
           >
             <Flag aria-hidden="true" className="size-3.5" focusable="false" />
-            <span>Report</span>
+            <span>{isZh ? "反馈" : "Report"}</span>
           </Button>
         </div>
       </DropdownMenuContent>
@@ -294,11 +301,14 @@ export default function MessageConversation({
     return unsubscribe;
   }, []);
 
+  const { language, t } = useLanguage();
+  const isZh = language === "zh";
+
   const currentUser: ChatUser = {
     id: "user-me",
-    name: profile.userName || "You",
+    name: profile.userName || (isZh ? "你" : "You"),
     avatar: profile.userAvatar,
-    roleDescription: "Mindful Journey Seeker",
+    roleDescription: isZh ? "正念探索者" : "Mindful Journey Seeker",
     status: "online",
   };
 
@@ -308,7 +318,7 @@ export default function MessageConversation({
         id: "counselor-female",
         name: profile.femaleCounselorName || "Maya",
         avatar: profile.femaleCounselorAvatar,
-        roleDescription: "🌸 Gentle & Nurturing Perspective (CBT Companion)",
+        roleDescription: isZh ? "🌸 温和倾听与共情接纳 (CBT 愈疗伙伴)" : "🌸 Gentle & Nurturing Perspective (CBT Companion)",
         status: "online",
       };
     }
@@ -316,7 +326,7 @@ export default function MessageConversation({
       id: "counselor-male",
       name: profile.maleCounselorName || "Liam",
       avatar: profile.maleCounselorAvatar,
-      roleDescription: "🌿 Steady & Grounded Perspective (CBT Companion)",
+      roleDescription: isZh ? "🌿 理性拆解与思维梳理 (CBT 愈疗伙伴)" : "🌿 Steady & Grounded Perspective (CBT Companion)",
       status: "online",
     };
   };
@@ -325,12 +335,18 @@ export default function MessageConversation({
 
   const getGreetingText = (p: CounselorPersona) => {
     const counselorName = p === "female" ? profile.femaleCounselorName || "Maya" : profile.maleCounselorName || "Liam";
-    const userName = profile.userName || "friend";
+    const userName = profile.userName || (isZh ? "朋友" : "friend");
     if (p === "female") {
-      return `Hello ${userName}, I'm ${counselorName}. 🌸
+      return isZh
+        ? `你好 ${userName === "朋友" ? "" : userName}，我是 ${counselorName}。🌸
+这里是一个完全安全、温暖且没有评判的倾诉空间。先做一次深呼吸，今天有什么心事或感受，想和我聊聊吗？`
+        : `Hello ${userName}, I'm ${counselorName}. 🌸
 I'm here to offer you a quiet, warm space without any judgment. Whatever is resting heavily on your heart today, take a slow breath, and tell me whenever you feel ready.`;
     }
-    return `Welcome ${userName}, I'm ${counselorName}. 🌿
+    return isZh
+      ? `你好 ${userName === "朋友" ? "" : userName}，我是 ${counselorName}。🌿
+不用着急，我们可以一起慢慢梳理你遇到的困惑与想法，一步一步找回内心的清晰与平静。你此刻感觉如何？`
+      : `Welcome ${userName}, I'm ${counselorName}. 🌿
 Take all the time you need. We can gently explore what you're experiencing step-by-step and help you find steady ground. How are you feeling right in this moment?`;
   };
 
@@ -341,8 +357,8 @@ Take all the time you need. We can gently explore what you're experiencing step-
     id,
     text: getGreetingText(selectedPersona),
     sender: getCounselorUser(selectedPersona),
-    time: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
-    cbtTip: "Active Listening: Safe, confidential, and judgment-free space.",
+    time: new Date().toLocaleTimeString(isZh ? "zh-CN" : "en-US", { hour: "2-digit", minute: "2-digit" }),
+    cbtTip: isZh ? "专注倾听：安全、私密且无评判的包容空间。" : "Active Listening: Safe, confidential, and judgment-free space.",
   });
 
   const [messages, setMessages] = useState<ChatMessage[]>(() => [
@@ -352,7 +368,18 @@ Take all the time you need. We can gently explore what you're experiencing step-
   const [isTyping, setIsTyping] = useState(false);
   const [crisisMessage, setCrisisMessage] = useState<string | null>(null);
   const [isRecordingVoice, setIsRecordingVoice] = useState(false);
-  const [voiceLanguage, setVoiceLanguage] = useState<"en_us" | "zh_cn">("en_us");
+  const [voiceLanguage, setVoiceLanguage] = useState<"en_us" | "zh_cn">(isZh ? "zh_cn" : "en_us");
+
+  // Keep welcome message & voice input in sync when language toggles
+  useEffect(() => {
+    setMessages((prev) => {
+      if (prev.length === 1 && (prev[0].id === "initial-welcome" || String(prev[0].id).startsWith("welcome-"))) {
+        return [createWelcomeMessage(persona, "initial-welcome")];
+      }
+      return prev;
+    });
+    setVoiceLanguage(isZh ? "zh_cn" : "en_us");
+  }, [language, persona]);
 
   // CALL-E voice check-in call state
   const [callModalOpen, setCallModalOpen] = useState(false);
@@ -373,23 +400,34 @@ Take all the time you need. We can gently explore what you're experiencing step-
     };
   }, []);
 
-  const handleToggleVoice = async () => {
+  // Custom prompt from external navigation
+  useEffect(() => {
+    if (initialPrompt && initialPrompt.trim()) {
+      handleSend(initialPrompt.trim());
+      onPromptConsumed?.();
+    }
+  }, [initialPrompt]);
+
+  const handleToggleVoice = () => {
+    if (!dictationRef.current) return;
+
     if (isRecordingVoice) {
-      dictationRef.current?.stop();
+      dictationRef.current.stop();
       setIsRecordingVoice(false);
     } else {
       setIsRecordingVoice(true);
-      dictationRef.current?.start(
+      dictationRef.current.start(
         {
-          onStart: () => setIsRecordingVoice(true),
-          onResult: (text) => {
-            setInputVal((prev) => (prev ? `${prev} ${text}` : text));
+          onResult: (text: string, isFinal: boolean) => {
+            setInputVal((prev) => (isFinal ? prev + text : prev));
           },
-          onError: (err) => {
-            console.warn("Voice dictation error:", err);
+          onError: (error: Error) => {
+            console.error("Dictation error:", error);
             setIsRecordingVoice(false);
           },
-          onEnd: () => setIsRecordingVoice(false),
+          onEnd: () => {
+            setIsRecordingVoice(false);
+          },
         },
         voiceLanguage
       );
@@ -416,87 +454,44 @@ Take all the time you need. We can gently explore what you're experiencing step-
         id: `voice-call-${Date.now()}`,
         text,
         sender: currentCounselor,
-        time: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
+        time: new Date().toLocaleTimeString(isZh ? "zh-CN" : "en-US", { hour: "2-digit", minute: "2-digit" }),
         cbtTip,
       },
     ]);
   };
 
-  const openVoiceCallModal = () => {
-    setCallModalOpen(true);
-    if (callPhase !== "calling") {
-      setCallPhase("form");
-      setCallError(null);
-      setCallStatusText(null);
-      setCallConsent(false);
-    }
-  };
-
-  const handleStartVoiceCall = async () => {
-    setCallError(null);
-    if (!callConsent) {
-      setCallError("Please confirm you consent to receive a support call.");
-      return;
-    }
-
-    setCallPhase("creating");
-    const response = await createVoiceCall(callPhone, callConsent);
-
-    if (!response.ok || !response.callId) {
-      setCallPhase("form");
-      setCallError(response.error || "The support call could not be scheduled.");
-      return;
-    }
-
-    activeCallIdRef.current = response.callId;
-    setCallStatusText("Your companion is dialing you now... 📞");
-    setCallPhase("calling");
-  };
-
-  const handleCallOutcome = (status: VoiceCallStatusResponse) => {
-    setCallModalOpen(false);
-    setCallPhase("form");
-    setCallStatusText(null);
-    activeCallIdRef.current = null;
-
-    if (status.ok && status.crisis) {
-      setCrisisMessage(
-        "During your Call Me session, signs of serious distress were noticed. Your safety comes first — please reach out now. If you are in the US or Canada, call or text 988, or contact your local emergency services immediately."
-      );
-      addCounselorMessage(
-        "I'm really glad we spoke, but right now I want to make sure you are safe. 💚 Please call or text 988 (US/Canada), or your local emergency services if you are in immediate danger. You matter, and support is available right now.",
-        "Crisis Safety: Prioritize immediate human support"
-      );
-      return;
-    }
-
+  const postCallFollowup = (status: VoiceCallStatusResponse) => {
     if (status.ok && status.status === "completed") {
-      const mood = status.result?.mood_after_call;
-      const summary = status.result?.support_summary;
+      const summary = status.result?.support_summary?.trim();
+      const moodDelta = status.result?.mood_after_call;
       const moodNote =
-        mood === "better"
-          ? " I'm so glad you're feeling a little lighter than when we started."
-          : mood === "worse"
-            ? " I hear that things felt heavier as we talked — that's okay, and I'm here."
+        moodDelta === "improved"
+          ? (isZh ? " 欣喜地看到通话后你的心情有所好转。" : " I'm glad our phone check-in helped you feel a bit lighter.")
+          : moodDelta === "worsened"
+            ? (isZh ? " 听得出刚才的话题有些沉重——没关系，我就在这里陪着你。" : " I hear that things felt heavier as we talked — that's okay, and I'm here.")
             : "";
       addCounselorMessage(
-        `📞 It was so good to hear your voice just now.${moodNote}${summary ? ` ${summary}` : ""} Remember, I'm right here in this chat whenever you need me. 🌸`,
-        "Call Me • CALL-E Companion Call"
+        `📞 ${isZh ? "很高兴刚才听到了你的声音。" : "It was so good to hear your voice just now."}${moodNote}${summary ? ` ${summary}` : ""} ${isZh ? "随时都可以回到这里和我倾诉，我一直都在。🌸" : "Remember, I'm right here in this chat whenever you need me. 🌸"}`,
+        isZh ? "电话关怀 · 专属陪伴通话" : "Call Me • CALL-E Companion Call"
       );
       return;
     }
 
     if (status.ok && (status.status === "failed" || status.status === "canceled")) {
       addCounselorMessage(
-        "📞 I tried to reach you for our voice check-in, but the call couldn't go through this time. We can try again later — or just keep chatting with me right here. 🌿",
-        "Call Me • Call Not Connected"
+        isZh
+          ? "📞 刚才尝试拨打你的电话，但本次通话未能接通。我们稍后可以再试——或者你可以直接在这里继续和我打字倾诉。🌿"
+          : "📞 I tried to reach you for our voice check-in, but the call couldn't go through this time. We can try again later — or just keep chatting with me right here. 🌿",
+        isZh ? "电话关怀 · 通话未接通" : "Call Me • Call Not Connected"
       );
       return;
     }
 
     addCounselorMessage(
-      "📞 Our voice check-in is still wrapping up on the line. I'll share a gentle note here once it's done — meanwhile, I'm right here with you.",
-      "Call Me • Awaiting Final Report"
+      isZh
+        ? "📞 我们的语音通话正在整理中。完成后我会在此同步总结——同时，我一直在这里陪伴着你。"
+        : "📞 Our voice check-in is still wrapping up on the line. I'll share a gentle note here once it's done — meanwhile, I'm right here with you.",
+      isZh ? "电话关怀 · 正在整理记录" : "Call Me • Awaiting Final Report"
     );
   };
 
@@ -506,7 +501,7 @@ Take all the time you need. We can gently explore what you're experiencing step-
     let cancelled = false;
     let attempts = 0;
     let consecutiveErrors = 0;
-    const MAX_ATTEMPTS = 48; // ~4 minutes at 5s intervals
+    const MAX_ATTEMPTS = 48;
     const MAX_CONSECUTIVE_ERRORS = 3;
 
     const poll = async () => {
@@ -519,74 +514,97 @@ Take all the time you need. We can gently explore what you're experiencing step-
 
       if (!status.ok) {
         consecutiveErrors += 1;
-        if (consecutiveErrors < MAX_CONSECUTIVE_ERRORS && attempts < MAX_ATTEMPTS) {
-          setTimeout(poll, 5_000);
+        if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+          setCallStatusText(isZh ? "状态同步遇到问题，但通话仍在继续" : "Status sync had an issue, but your call may still be active");
+          setCallPhase("form");
+          postCallFollowup({ ok: true, status: "completed", callId: callId || "", crisis: false });
           return;
         }
-        handleCallOutcome(status);
+      } else {
+        consecutiveErrors = 0;
+        if (status.status === "ringing") {
+          setCallStatusText(isZh ? "正在拨号，请留意接听..." : "Ringing your phone now...");
+        } else if (status.status === "in_progress") {
+          setCallStatusText(isZh ? "通话进行中..." : "Call in progress...");
+        } else if (
+          status.status === "completed" ||
+          status.status === "failed" ||
+          status.status === "canceled"
+        ) {
+          setCallPhase("form");
+          postCallFollowup(status);
+          return;
+        }
+      }
+
+      if (attempts >= MAX_ATTEMPTS) {
+        setCallPhase("form");
+        postCallFollowup({ ok: true, status: "completed", callId: callId || "", crisis: false });
         return;
       }
 
-      consecutiveErrors = 0;
-      if (status.status === "queued" || status.status === "in_progress") {
-        if (attempts < MAX_ATTEMPTS) {
-          setTimeout(poll, 5_000);
-          return;
-        }
-        handleCallOutcome({ ok: false, callId, status: "unknown", crisis: false });
-        return;
+      if (!cancelled) {
+        setTimeout(poll, 5000);
       }
-
-      handleCallOutcome(status);
     };
 
-    const timer = setTimeout(poll, 5_000);
+    const timer = setTimeout(poll, 3000);
     return () => {
       cancelled = true;
       clearTimeout(timer);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [callPhase]);
-  // ────────────────────────────────────────────────────────────────────
 
+  const openVoiceCallModal = () => {
+    setCallError(null);
+    setCallModalOpen(true);
+  };
 
-  useEffect(() => {
-    if (scrollRef.current) {
-      const scrollContainer = scrollRef.current.querySelector("[data-radix-scroll-area-viewport]");
-      if (scrollContainer) {
-        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+  const handleStartVoiceCall = async () => {
+    if (!callConsent) {
+      setCallError(isZh ? "请勾选同意接收 AI 语音通话" : "Please check the box to consent to the voice call.");
+      return;
+    }
+    const cleanPhone = callPhone.trim();
+    if (!cleanPhone) {
+      setCallError(isZh ? "请输入用于接听通话的电话号码" : "Please enter a phone number to call.");
+      return;
+    }
+    setCallError(null);
+    setCallPhase("creating");
+
+    try {
+      const resp = await createVoiceCall(cleanPhone, callConsent);
+      if (!resp.ok) {
+        setCallError(resp.error || (isZh ? "发起通话遇到问题，请检查号码格式重试" : "Could not place the call. Please check the number and try again."));
+        setCallPhase("form");
+        return;
       }
+      activeCallIdRef.current = resp.callId ?? null;
+      setCallPhase("calling");
+      setCallStatusText(isZh ? "正在为您发起通话..." : "Initiating your call...");
+    } catch (err) {
+      setCallError(isZh ? "网络连接异常，请稍后重试" : "Network error. Please try again in a moment.");
+      setCallPhase("form");
     }
-  }, [messages, isTyping]);
+  };
 
-  useEffect(() => {
-    if (initialPrompt && initialPrompt.trim()) {
-      handleSend(initialPrompt);
-      onPromptConsumed?.();
-    }
-  }, [initialPrompt]);
+  const handleSend = async (forcedText?: string) => {
+    const textToSend = forcedText !== undefined ? forcedText : inputVal;
+    if (!textToSend.trim() || isTyping) return;
 
-  const handleSend = async (overrideText?: string) => {
-    const textToSend = (overrideText || inputVal).trim();
-    if (!textToSend) return;
-
-    if (isRecordingVoice) {
-      dictationRef.current?.stop();
-      setIsRecordingVoice(false);
-    }
-
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+    ttsPlayer.stop();
 
     const userMsg: ChatMessage = {
       id: `user-${Date.now()}`,
       text: textToSend,
       sender: currentUser,
-      time: timeStr,
+      time: new Date().toLocaleTimeString(isZh ? "zh-CN" : "en-US", { hour: "2-digit", minute: "2-digit" }),
     };
 
     setMessages((prev) => [...prev, userMsg]);
     logChatMessage("user", textToSend);
+
     setInputVal("");
     setIsTyping(true);
 
@@ -602,9 +620,9 @@ Take all the time you need. We can gently explore what you're experiencing step-
         id: `counselor-${Date.now()}`,
         text: replyData.reply,
         sender: currentCounselor,
-        time: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
+        time: new Date().toLocaleTimeString(isZh ? "zh-CN" : "en-US", { hour: "2-digit", minute: "2-digit" }),
         cbtTip: replyData.cbtCategory
-          ? `${replyData.cbtCategory}: ${replyData.cbtTip || "Cognitive gentle validation"}`
+          ? `${replyData.cbtCategory}: ${replyData.cbtTip || (isZh ? "认知温和接纳" : "Cognitive gentle validation")}`
           : undefined,
       };
 
@@ -620,9 +638,11 @@ Take all the time you need. We can gently explore what you're experiencing step-
       console.error("Chat error:", err);
       const fallbackMsg: ChatMessage = {
         id: `counselor-err-${Date.now()}`,
-        text: "I hear the weight in what you're expressing. Let's take a deep, gentle breath together. You are safe here.",
+        text: isZh
+          ? "我体会到了你此刻承受的压力。让我们一起做一次深长而缓慢的呼吸。在这里，你是全然被理解与安全的。"
+          : "I hear the weight in what you're expressing. Let's take a deep, gentle breath together. You are safe here.",
         sender: currentCounselor,
-        time: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
+        time: new Date().toLocaleTimeString(isZh ? "zh-CN" : "en-US", { hour: "2-digit", minute: "2-digit" }),
       };
       setMessages((prev) => [...prev, fallbackMsg]);
     } finally {
@@ -645,7 +665,7 @@ Take all the time you need. We can gently explore what you're experiencing step-
   };
 
   const replyToMessage = (text: string) => {
-    setInputVal((prev) => (prev ? `${prev} [Ref: "${text.slice(0, 30)}..."] ` : `Regarding "${text.slice(0, 30)}...": `));
+    setInputVal((prev) => (prev ? `${prev} [${isZh ? "引用" : "Ref"}: "${text.slice(0, 30)}..."] ` : `${isZh ? "关于" : "Regarding"} "${text.slice(0, 30)}...": `));
   };
 
   return (
@@ -672,7 +692,7 @@ Take all the time you need. We can gently explore what you're experiencing step-
             <div className="flex items-center gap-2 font-semibold text-foreground text-sm md:text-base">
               <span>{currentCounselor.name}</span>
               <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
-                <Sparkles className="size-3 text-emerald-600" /> CBT Companion
+                <Sparkles className="size-3 text-emerald-600" /> {isZh ? "CBT 伴侣" : "CBT Companion"}
               </span>
             </div>
             <div className="text-muted-foreground text-xs font-lato-light-italic">
@@ -716,10 +736,10 @@ Take all the time you need. We can gently explore what you're experiencing step-
             size="sm"
             onClick={openVoiceCallModal}
             className="inline-flex items-center gap-1.5 rounded-2xl border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20 text-xs h-8 px-2.5 sm:px-3 transition-all cursor-pointer shadow-2xs"
-            title="Ask your companion to call you"
+            title={isZh ? "向咨询师发起电话关怀" : "Ask your companion to call you"}
           >
             <Phone className="size-3.5 text-emerald-600 dark:text-emerald-400" />
-            <span className="hidden xs:inline">Call Me</span>
+            <span className="hidden xs:inline">{isZh ? "电话关怀" : "Call Me"}</span>
             {callPhase === "calling" && (
               <span className="relative flex size-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
@@ -736,7 +756,7 @@ Take all the time you need. We can gently explore what you're experiencing step-
               className="hidden sm:inline-flex items-center gap-1.5 rounded-2xl border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20 text-xs h-8 px-3 transition-all cursor-pointer"
             >
               <Wind className="size-3.5 text-teal-500" />
-              <span>Breathe Sanctuary</span>
+              <span>{isZh ? "呼吸减压" : "Breathe Sanctuary"}</span>
             </Button>
           )}
 
@@ -745,6 +765,7 @@ Take all the time you need. We can gently explore what you're experiencing step-
             autoSpeak={autoSpeak}
             onToggleAutoSpeak={() => setAutoSpeak(!autoSpeak)}
             onOpenCallModal={openVoiceCallModal}
+            language={language}
           />
         </div>
       </CardHeader>
@@ -866,6 +887,7 @@ Take all the time you need. We can gently explore what you're experiencing step-
                           onCopy={() => copyMessage(msg.text)}
                           onDelete={() => deleteMessage(msg.id)}
                           onReply={() => replyToMessage(msg.text)}
+                          language={language}
                         />
                       </div>
                     </div>
@@ -886,10 +908,10 @@ Take all the time you need. We can gently explore what you're experiencing step-
                 <ThinkingOrb state="solving" size={64} speed={0.85} style={{ width: 48, height: 48 }} />
                 <div className="flex flex-col">
                   <span className="text-xs font-semibold text-foreground">
-                    {currentCounselor.name} is reflecting mindfully...
+                    {currentCounselor.name} {isZh ? "正在静心思考..." : "is reflecting mindfully..."}
                   </span>
                   <span className="text-[11px] text-muted-foreground font-lato-light-italic">
-                    Formulating empathetic CBT guidance
+                    {isZh ? "构思共情与专业的 CBT 引导回应" : "Formulating empathetic CBT guidance"}
                   </span>
                 </div>
               </div>
@@ -911,7 +933,7 @@ Take all the time you need. We can gently explore what you're experiencing step-
               "size-10 rounded-xl shrink-0 transition-all",
               isRecordingVoice && "animate-pulse ring-2 ring-rose-500"
             )}
-            title={isRecordingVoice ? "Click to stop microphone streaming" : "iFlytek Voice Dictation (Microphone)"}
+            title={isRecordingVoice ? (isZh ? "点击停止麦克风录音" : "Click to stop microphone streaming") : (isZh ? "讯飞语音听写 (麦克风)" : "iFlytek Voice Dictation (Microphone)")}
           >
             {isRecordingVoice ? (
               <MicOff className="size-4 text-white" />
@@ -925,7 +947,7 @@ Take all the time you need. We can gently explore what you're experiencing step-
             type="button"
             onClick={() => setVoiceLanguage((prev) => (prev === "en_us" ? "zh_cn" : "en_us"))}
             className="hidden sm:inline-flex items-center rounded-lg border border-border/80 px-2 py-1 text-[10px] font-semibold text-muted-foreground hover:text-foreground"
-            title="Switch iFlytek Speech Recognition Language"
+            title={isZh ? "切换讯飞语音听写识别语种" : "Switch iFlytek Speech Recognition Language"}
           >
             {voiceLanguage === "en_us" ? "EN 🇺🇸" : "中文 🇨🇳"}
           </button>
@@ -943,8 +965,8 @@ Take all the time you need. We can gently explore what you're experiencing step-
             }}
             placeholder={
               isRecordingVoice
-                ? "🎙️ Listening to your voice (iFlytek ASR)... speak gently..."
-                : `Share what's on your mind with ${currentCounselor.name}...`
+                ? (isZh ? "🎙️ 正在倾听您的声音 (讯飞语音识别)... 请轻柔讲述..." : "🎙️ Listening to your voice (iFlytek ASR)... speak gently...")
+                : (isZh ? `向 ${currentCounselor.name} 倾诉此刻的心事与想法...` : `Share what's on your mind with ${currentCounselor.name}...`)
             }
             className="flex-1 rounded-xl border border-input bg-card px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 font-light"
           />
@@ -955,6 +977,7 @@ Take all the time you need. We can gently explore what you're experiencing step-
             onClick={() => handleSend()}
             disabled={!inputVal.trim() || isTyping}
             className="size-10 rounded-xl shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+            title={isZh ? "发送消息" : "Send message"}
           >
             <Send className="size-4" />
           </Button>

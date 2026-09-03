@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";
-import { Sparkles, MessageCircleHeart, HeartPulse, Wind, Moon, Sun, Compass } from "lucide-react";
+import { Sparkles, MessageCircleHeart, HeartPulse, Wind, Moon, Sun, Compass, Languages } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getProfileConfig, subscribeProfileConfig, type ProfileConfig } from "@/lib/profileStore";
+import { useLanguage, type Language } from "@/lib/i18n";
 
 export type NavTab = "hero" | "chat" | "breathe" | "mood" | "guide" | "me";
 
@@ -11,22 +12,25 @@ interface NavbarProps {
   onTabChange: (tab: NavTab) => void;
   isDarkMode: boolean;
   onToggleDarkMode: () => void;
+  language?: Language;
+  onToggleLanguage?: () => void;
 }
 
 interface NavItemConfig {
   id: NavTab;
-  label: string;
+  key: string;
+  defaultLabel: string;
   icon?: React.ComponentType<{ className?: string }>;
   iconClass?: string;
 }
 
-const NAV_ITEMS: NavItemConfig[] = [
-  { id: "hero", label: "Explore", icon: Sparkles, iconClass: "text-emerald-500/90 dark:text-emerald-400" },
-  { id: "chat", label: "Chat", icon: MessageCircleHeart, iconClass: "text-teal-500/90 dark:text-teal-400" },
-  { id: "breathe", label: "Breathe", icon: Wind, iconClass: "text-teal-500/90 dark:text-teal-400" },
-  { id: "mood", label: "Mood", icon: HeartPulse, iconClass: "text-emerald-500/90 dark:text-emerald-400" },
-  { id: "guide", label: "Guide", icon: Compass, iconClass: "text-emerald-500/90 dark:text-emerald-400" },
-  { id: "me", label: "Me" },
+const NAV_ITEM_DEFS: NavItemConfig[] = [
+  { id: "hero", key: "nav.explore", defaultLabel: "Explore", icon: Sparkles, iconClass: "text-emerald-500/90 dark:text-emerald-400" },
+  { id: "chat", key: "nav.chat", defaultLabel: "Chat", icon: MessageCircleHeart, iconClass: "text-teal-500/90 dark:text-teal-400" },
+  { id: "breathe", key: "nav.breathe", defaultLabel: "Breathe", icon: Wind, iconClass: "text-teal-500/90 dark:text-teal-400" },
+  { id: "mood", key: "nav.mood", defaultLabel: "Mood", icon: HeartPulse, iconClass: "text-emerald-500/90 dark:text-emerald-400" },
+  { id: "guide", key: "nav.guide", defaultLabel: "Guide", icon: Compass, iconClass: "text-emerald-500/90 dark:text-emerald-400" },
+  { id: "me", key: "nav.me", defaultLabel: "Me" },
 ];
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -34,7 +38,13 @@ export const Navbar: React.FC<NavbarProps> = ({
   onTabChange,
   isDarkMode,
   onToggleDarkMode,
+  language: propLanguage,
+  onToggleLanguage: propToggleLanguage,
 }) => {
+  const i18n = useLanguage();
+  const language = propLanguage ?? i18n.language;
+  const toggleLanguage = propToggleLanguage ?? i18n.toggleLanguage;
+  const t = i18n.t;
   const [profile, setProfile] = useState<ProfileConfig>(getProfileConfig);
   const activeRef = useRef<HTMLButtonElement | null>(null);
   // Sliding pill geometry; null until first measurement so it never flashes misplaced.
@@ -50,15 +60,20 @@ export const Navbar: React.FC<NavbarProps> = ({
     setPill({ left: el.offsetLeft, width: el.offsetWidth });
   }, []);
 
-  // Layout effect: measure before paint so the pill lands correctly on tab change.
+  // Layout effect: measure before paint so the pill lands correctly on tab change or language switch.
   useLayoutEffect(() => {
     measurePill();
-  }, [measurePill, currentTab]);
+  }, [measurePill, currentTab, language]);
 
   useEffect(() => {
     window.addEventListener("resize", measurePill);
     return () => window.removeEventListener("resize", measurePill);
   }, [measurePill]);
+
+  const navItems = NAV_ITEM_DEFS.map((item) => ({
+    ...item,
+    label: t(item.key, item.defaultLabel),
+  }));
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-emerald-900/10 dark:border-emerald-500/15 bg-background/85 dark:bg-card/80 backdrop-blur-xl shadow-xs">
@@ -81,10 +96,13 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
           <div className="flex flex-col">
             <span className="font-bold text-base md:text-lg tracking-tight leading-tight text-foreground">
-              MindQuark <span className="text-emerald-600 dark:text-emerald-400 font-normal text-xs md:text-sm font-lato-light-italic">Sanctuary</span>
+              MindQuark{" "}
+              <span className="text-emerald-600 dark:text-emerald-400 font-normal text-xs md:text-sm font-lato-light-italic">
+                {t("nav.brandSub", "Sanctuary")}
+              </span>
             </span>
             <span className="text-[10px] text-muted-foreground hidden sm:inline font-lato-light-italic">
-              24/7 AI Mental Health & Coaching
+              {t("nav.tagline", "24/7 AI Mental Health & Coaching")}
             </span>
           </div>
         </div>
@@ -102,7 +120,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               style={{ transform: `translateX(${pill.left}px)`, width: `${pill.width}px` }}
             />
           )}
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const isActive = currentTab === item.id;
             const Icon = item.icon;
             return (
@@ -140,14 +158,33 @@ export const Navbar: React.FC<NavbarProps> = ({
           })}
         </nav>
 
-        {/* Theme Toggle — icon lives inside the button; key-swap replays a soft enter */}
-        <div className="flex items-center gap-2">
+        {/* Right Actions: Language Switcher & Theme Toggle */}
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Chinese / English Language Switcher */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleLanguage}
+            className="h-9 px-2.5 sm:px-3 rounded-full border border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/10 hover:border-emerald-500/40 text-muted-foreground hover:text-foreground transition-[color,background-color,border-color,transform] duration-200 ease-out-soft active:scale-[0.97] cursor-pointer"
+            aria-label={language === "zh" ? "切换为英文" : "Switch to Chinese"}
+            title={language === "zh" ? "切换为英文 (Switch to English)" : "切换为中文 (Switch to Chinese)"}
+          >
+            <Languages className="size-3.5 sm:size-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span
+              key={language}
+              className="inline-flex items-center text-xs font-medium tracking-wide animate-in fade-in-50 zoom-in-95 duration-200"
+            >
+              {language === "zh" ? "中文" : "EN"}
+            </span>
+          </Button>
+
+          {/* Theme Toggle — icon lives inside the button; key-swap replays a soft enter */}
           <Button
             variant="ghost"
             size="icon"
             onClick={onToggleDarkMode}
-            className="size-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-emerald-500/10"
-            aria-label="Toggle theme"
+            className="size-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-emerald-500/10 cursor-pointer"
+            aria-label={t("nav.toggleTheme", "Toggle theme")}
           >
             <span
               key={isDarkMode ? "sun" : "moon"}
