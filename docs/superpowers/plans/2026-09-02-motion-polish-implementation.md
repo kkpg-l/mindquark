@@ -100,51 +100,15 @@ Create `src/lib/motion.css`:
 
 - [ ] **Step 3: Update index.css imports**
 
-In `src/index.css`, replace the single `@import "tailwindcss";` line with:
+In `src/index.css`, replace the single `@import "tailwindcss";` line with exactly three imports:
 
 ```css
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "tailwindcss";
+@import "lib/motion.css";
 ```
 
-Add at the very end of `@layer base` (before any other `@layer` blocks):
-
-```css
-@layer base {
-  /* ... existing theme vars ... */
-
-  /* Import motion token system */
-  @import url("https://cdn.jsdelivr.net/npm/tw-animate-css@1.2.4/dist/tw-animate-css.min.css");
-}
-```
-
-Wait — re-read the design. The correct approach per §4 P0 is simply:
-
-```css
-@import "tailwindcss";
-@import "tw-animate-css";
-```
-
-The `tw-animate-css` package provides its own `@import "tw-animate-css"` directive internally. So just adding it after tailwindcss is sufficient. Do NOT add a URL import — that would conflict.
-
-So the replacement is:
-
-```css
-@import "tailwindcss";
-@import "tw-animate-css";
-```
-
-And then add the motion.css import separately:
-
-```css
-@import "tailwindcss";
-@import "tw-animate-css";
-@import "tailwindcss";
-@import "../lib/motion.css";
-```
-
-This ensures tw-animate-css loads before our custom styles, and motion.css brings in the token definitions.
+Order matters: `tw-animate-css` must load after `tailwindcss` (its `@utility` directives are registered by the Tailwind v4 pipeline) and `motion.css` last so our tokens and the reduced-motion gate win the cascade. Do NOT add a CDN URL import (conflicts with the local package) and do NOT duplicate `@import "tailwindcss";` — the final block above is the single source of truth.
 
 - [ ] **Step 4: Update vitest config to include .jsx**
 

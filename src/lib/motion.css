@@ -34,6 +34,23 @@
   .animate-draw-check {
     animation: none !important;
   }
+  /* Enter/exit utilities revived via tw-animate-css (10 sites): strip
+     displacement, scale, rotation and blur so only a fast opacity fade
+     remains — tw-animate-css ships no reduced-motion handling itself. */
+  .animate-in,
+  .animate-out {
+    --tw-enter-scale: 1;
+    --tw-enter-translate-x: 0;
+    --tw-enter-translate-y: 0;
+    --tw-enter-rotate: 0;
+    --tw-enter-blur: 0;
+    --tw-exit-scale: 1;
+    --tw-exit-translate-x: 0;
+    --tw-exit-translate-y: 0;
+    --tw-exit-rotate: 0;
+    --tw-exit-blur: 0;
+    animation-duration: 100ms;
+  }
   /* Downgrade displacement/scale transitions to fast fade */
   .motion-lift,
   .motion-press,
