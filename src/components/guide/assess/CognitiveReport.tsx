@@ -99,12 +99,33 @@ export const CognitiveReport: React.FC<CognitiveReportProps> = ({
 
   useGSAP(
     () => {
+      const reduceMotion =
+        typeof window !== "undefined" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (reduceMotion) return; // static render, no entrance/count-up
+
       gsap.from(".report-card", {
         y: 22,
         autoAlpha: 0,
         stagger: 0.1,
         duration: 0.55,
         ease: "power3.out",
+      });
+
+      // Score count-up: roll trait percentages from 0 after entrance settles.
+      gsap.utils.toArray<HTMLElement>(".trait-percent").forEach((el) => {
+        const target = parseFloat(el.dataset.value || "0") * 100;
+        const obj = { value: 0 };
+        el.textContent = "0%";
+        gsap.to(obj, {
+          value: target,
+          duration: 0.7,
+          delay: 0.6,
+          ease: "power2.out",
+          onUpdate: () => {
+            el.textContent = `${Math.round(obj.value)}%`;
+          },
+        });
       });
     },
     { scope: containerRef }
@@ -152,7 +173,10 @@ export const CognitiveReport: React.FC<CognitiveReportProps> = ({
               <div key={key} className="space-y-1">
                 <div className="flex items-baseline justify-between">
                   <span className="text-xs font-semibold capitalize text-foreground/85">{key}</span>
-                  <span className="text-xs font-mono text-muted-foreground">
+                  <span
+                    className="trait-percent text-xs font-mono text-muted-foreground"
+                    data-value={snapshot.traits[key]}
+                  >
                     {percent(snapshot.traits[key])}
                   </span>
                 </div>

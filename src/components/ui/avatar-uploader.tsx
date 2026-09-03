@@ -18,11 +18,9 @@ export const AvatarUploader: React.FC<AvatarUploaderProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [showUrlInput, setShowUrlInput] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
 
-  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const processFile = async (file: File) => {
     setIsUploading(true);
     try {
       const compressedDataUrl = await processImageFile(file, 256);
@@ -33,6 +31,16 @@ export const AvatarUploader: React.FC<AvatarUploaderProps> = ({
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
+  };
+
+  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await processFile(file);
+  };
+
+  const handleFileDropped = async (file: File) => {
+    await processFile(file);
   };
 
   const isCustomUploaded = !presetAvatars.includes(currentAvatar) && currentAvatar.startsWith("data:");
@@ -58,7 +66,7 @@ export const AvatarUploader: React.FC<AvatarUploaderProps> = ({
             key={i}
             type="button"
             onClick={() => onAvatarChange(url)}
-            className={`relative size-10 rounded-full overflow-hidden border-2 transition-all hover:scale-105 ${
+            className={`relative size-10 rounded-full overflow-hidden border-2 transition-[transform,opacity,border-color,box-shadow] duration-150 ease-out-soft hover:scale-105 active:scale-[0.97] ${
               currentAvatar === url ? "border-primary ring-2 ring-primary/40 scale-105" : "border-transparent opacity-80"
             }`}
           >
@@ -93,8 +101,23 @@ export const AvatarUploader: React.FC<AvatarUploaderProps> = ({
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setIsDragOver(true);
+          }}
+          onDragLeave={() => setIsDragOver(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setIsDragOver(false);
+            const file = e.dataTransfer.files?.[0];
+            if (file) void handleFileDropped(file);
+          }}
           disabled={isUploading}
-          className="size-10 rounded-full border border-dashed border-border/90 bg-muted/40 hover:bg-accent flex flex-col items-center justify-center text-muted-foreground hover:text-primary transition-all group"
+          className={`size-10 rounded-full border border-dashed bg-muted/40 hover:bg-accent flex flex-col items-center justify-center text-muted-foreground hover:text-primary transition-[transform,background-color,border-color,box-shadow] duration-150 ease-out-soft active:scale-[0.97] group ${
+            isDragOver
+              ? "border-primary bg-primary/10 text-primary ring-2 ring-primary/50 scale-105"
+              : "border-border/90"
+          }`}
           title="Upload custom image file from your computer"
         >
           {isUploading ? (

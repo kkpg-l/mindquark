@@ -23,16 +23,35 @@ function gaugeColor(value: number, invert: boolean): string {
 
 export const StateGauge: React.FC<StateGaugeProps> = ({ label, description, value, invert = false }) => {
   const barRef = useRef<HTMLDivElement>(null);
+  const numRef = useRef<HTMLSpanElement>(null);
   const clamped = Math.min(1, Math.max(0, Number.isFinite(value) ? value : 0));
 
   useGSAP(
     () => {
       if (!barRef.current) return;
+      const reduceMotion =
+        typeof window !== "undefined" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (reduceMotion) return; // JSX already renders final width + value statically.
+
       gsap.fromTo(
         barRef.current,
         { width: "0%" },
         { width: `${clamped * 100}%`, duration: 0.9, ease: "power2.out" }
       );
+      if (numRef.current) {
+        const obj = { value: 0 };
+        gsap.to(obj, {
+          value: clamped * 100,
+          duration: 0.9,
+          ease: "power2.out",
+          onUpdate: () => {
+            if (numRef.current) {
+              numRef.current.textContent = `${Math.round(obj.value)}%`;
+            }
+          },
+        });
+      }
     },
     { dependencies: [clamped] }
   );
@@ -41,7 +60,9 @@ export const StateGauge: React.FC<StateGaugeProps> = ({ label, description, valu
     <div className="space-y-1.5">
       <div className="flex items-baseline justify-between">
         <span className="text-xs font-semibold text-foreground/85">{label}</span>
-        <span className="text-xs font-mono text-muted-foreground">{Math.round(clamped * 100)}%</span>
+        <span ref={numRef} className="text-xs font-mono text-muted-foreground">
+          {Math.round(clamped * 100)}%
+        </span>
       </div>
       <div className="h-2.5 w-full rounded-full bg-muted overflow-hidden">
         <div

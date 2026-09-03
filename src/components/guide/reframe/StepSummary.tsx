@@ -22,10 +22,10 @@ export const StepSummary: React.FC<StepSummaryProps> = ({
   if (completed) {
     return (
       <div className="flex flex-col items-center justify-center gap-5 py-12 text-center">
-        <div className="flex size-14 items-center justify-center rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400">
+        <div className="flex size-14 items-center justify-center rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 animate-pop-in">
           <CheckCircle2 className="size-7" />
         </div>
-        <div className="space-y-1.5">
+        <div className="space-y-1.5 animate-in fade-in-50 slide-in-from-bottom-2 duration-300 fill-mode-backwards delay-150">
           <h3 className="text-lg sm:text-xl font-bold text-foreground">Saved. Take a breath.</h3>
           <p className="text-sm text-muted-foreground font-lato-light-italic max-w-sm">
             You just walked one sticky thought all the way around — that&apos;s real CBT work. Your
@@ -34,7 +34,7 @@ export const StepSummary: React.FC<StepSummaryProps> = ({
         </div>
         <Button
           onClick={onRestart}
-          className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white h-10 gap-1.5"
+          className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white h-10 gap-1.5 animate-in fade-in-50 duration-300 fill-mode-backwards delay-200"
         >
           <RotateCcw className="size-4" />
           Start a new one
