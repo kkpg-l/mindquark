@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";
 import { Sparkles, MessageCircleHeart, HeartPulse, Wind, Moon, Sun, Compass } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -36,18 +36,45 @@ export const Navbar: React.FC<NavbarProps> = ({
   onToggleDarkMode,
 }) => {
   const [profile, setProfile] = useState<ProfileConfig>(getProfileConfig);
+  const activeRef = useRef<HTMLButtonElement | null>(null);
+  // Sliding pill geometry; null until first measurement so it never flashes misplaced.
+  const [pill, setPill] = useState<{ left: number; width: number } | null>(null);
 
   useEffect(() => {
     return subscribeProfileConfig(setProfile);
   }, []);
 
+  const measurePill = useCallback(() => {
+    const el = activeRef.current;
+    if (!el) return;
+    setPill({ left: el.offsetLeft, width: el.offsetWidth });
+  }, []);
+
+  // Layout effect: measure before paint so the pill lands correctly on tab change.
+  useLayoutEffect(() => {
+    measurePill();
+  }, [measurePill, currentTab]);
+
+  useEffect(() => {
+    window.addEventListener("resize", measurePill);
+    return () => window.removeEventListener("resize", measurePill);
+  }, [measurePill]);
+
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-emerald-900/10 dark:border-emerald-500/15 bg-background/85 dark:bg-card/80 backdrop-blur-xl transition-all shadow-xs">
+    <header className="sticky top-0 z-40 w-full border-b border-emerald-900/10 dark:border-emerald-500/15 bg-background/85 dark:bg-card/80 backdrop-blur-xl shadow-xs">
       <div className="container mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
         {/* Logo with emerald badge */}
         <div
+          role="button"
+          tabIndex={0}
           onClick={() => onTabChange("hero")}
-          className="flex cursor-pointer items-center gap-2.5 transition-transform hover:scale-105"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onTabChange("hero");
+            }
+          }}
+          className="flex cursor-pointer items-center gap-2.5 transition-transform duration-200 ease-out-soft hover:scale-105"
         >
           <div className="flex size-9 items-center justify-center rounded-2xl bg-gradient-to-tr from-teal-600 to-emerald-500 text-white shadow-md shadow-emerald-500/20">
             <Sparkles className="size-5" />
@@ -62,22 +89,33 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
 
-        {/* Navigation Tabs */}
-        <nav className="flex items-center gap-1 sm:gap-2 bg-emerald-500/5 dark:bg-emerald-950/30 p-1 rounded-full border border-emerald-500/10">
+        {/* Navigation Tabs with sliding pill indicator */}
+        <nav className="relative flex items-center gap-1 sm:gap-2 bg-emerald-500/5 dark:bg-emerald-950/30 p-1 rounded-full border border-emerald-500/10">
+          {/* Single pill, positioned against the nav track (not the tab), so
+              translateX is measured once and never double-counts. Width is
+              animated too — acceptable here because the pill is absolutely
+              positioned (out of flow), so it never triggers document reflow. */}
+          {pill && (
+            <span
+              aria-hidden="true"
+              className="absolute top-0 left-0 h-full rounded-full bg-emerald-600 shadow-sm shadow-emerald-600/20 transition-[transform,width] duration-300 ease-out-soft"
+              style={{ transform: `translateX(${pill.left}px)`, width: `${pill.width}px` }}
+            />
+          )}
           {NAV_ITEMS.map((item) => {
             const isActive = currentTab === item.id;
             const Icon = item.icon;
-
             return (
-              <Button
+              <button
                 key={item.id}
-                variant={isActive ? "default" : "ghost"}
-                size="sm"
+                type="button"
+                ref={isActive ? activeRef : null}
                 onClick={() => onTabChange(item.id)}
-                className={`rounded-full text-xs sm:text-sm h-8 sm:h-8.5 px-3.5 sm:px-4 gap-1.5 transition-all ${
+                aria-current={isActive ? "page" : undefined}
+                className={`relative z-10 inline-flex cursor-pointer select-none items-center gap-1.5 rounded-full py-1.5 px-3 text-xs sm:text-sm transition-[color,transform] duration-150 ease-out-soft active:scale-[0.97] ${
                   isActive
-                    ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shadow-emerald-600/20"
-                    : "text-muted-foreground hover:text-foreground hover:bg-emerald-500/10"
+                    ? "text-white"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {item.id === "me" ? (
@@ -97,12 +135,12 @@ export const Navbar: React.FC<NavbarProps> = ({
                   )
                 )}
                 <span>{item.label}</span>
-              </Button>
+              </button>
             );
           })}
         </nav>
 
-        {/* Theme Toggle */}
+        {/* Theme Toggle — icon lives inside the button; key-swap replays a soft enter */}
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
@@ -111,7 +149,12 @@ export const Navbar: React.FC<NavbarProps> = ({
             className="size-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-emerald-500/10"
             aria-label="Toggle theme"
           >
-            {isDarkMode ? <Sun className="size-4 text-amber-400" /> : <Moon className="size-4" />}
+            <span
+              key={isDarkMode ? "sun" : "moon"}
+              className="inline-flex animate-in fade-in-50 zoom-in-95 duration-200"
+            >
+              {isDarkMode ? <Sun className="size-4 text-amber-400" /> : <Moon className="size-4" />}
+            </span>
           </Button>
         </div>
       </div>
