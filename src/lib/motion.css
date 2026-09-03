@@ -23,6 +23,25 @@
   100% { stroke-dashoffset: 0; }
 }
 
+@keyframes animate-bounce-pulse {
+  0% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* ---- 3.3b Utility classes for the keyframes above ---- */
+
+.animate-pop-in {
+  animation: animate-pop-in 240ms var(--ease-spring-gentle) both;
+}
+
+.animate-draw-check {
+  animation: animate-draw-check 400ms var(--ease-out-soft) both;
+}
+
+.animate-bounce-pulse {
+  animation: animate-bounce-pulse 600ms var(--ease-out-soft) infinite;
+}
+
 /* ---- 3.4 Three principles (comment block) ---- */
 /* 1. Open/close asymmetry: open 200-300ms / close 150ms */
 /* 2. Only transform/opacity — never layout properties */
@@ -31,7 +50,8 @@
 /* ---- §7 Reduced-motion gate ---- */
 @media (prefers-reduced-motion: reduce) {
   .animate-pop-in,
-  .animate-draw-check {
+  .animate-draw-check,
+  .animate-bounce-pulse {
     animation: none !important;
   }
   /* Enter/exit utilities revived via tw-animate-css (10 sites): strip

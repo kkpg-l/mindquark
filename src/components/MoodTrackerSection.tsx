@@ -143,7 +143,7 @@ export const MoodTrackerSection: React.FC<{
                   <button
                     key={opt.label}
                     onClick={() => setSelectedMood(opt.label)}
-                    className={`mood-item-stagger flex items-center gap-2 rounded-xl border p-2.5 text-xs font-medium transition-all cursor-pointer ${
+                    className={`mood-item-stagger flex items-center gap-2 rounded-xl border p-2.5 text-xs font-medium transition-[transform,background-color,border-color,box-shadow] duration-150 active:scale-[0.97] cursor-pointer ${
                       selectedMood === opt.label
                         ? `${opt.color} ring-2 ring-primary/40 font-semibold shadow-xs`
                         : "border-border/70 hover:bg-accent text-foreground/80"
@@ -230,7 +230,7 @@ export const MoodTrackerSection: React.FC<{
               >
                 {savedSuccess ? (
                   <>
-                    <CheckCircle2 className="size-4 text-emerald-300" />
+                    <CheckCircle2 className="size-4 text-emerald-300 animate-pop-in" />
                     <span>Saved!</span>
                   </>
                 ) : (
