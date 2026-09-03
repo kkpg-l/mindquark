@@ -446,8 +446,8 @@ export function BreatheSection({
   const currentPhaseConfig = activeTechConfig.phases[phaseIndex] || activeTechConfig.phases[0];
 
   // Shared technique card styles (used by both mapped techniques and the 54321 card)
-  const TECHNIQUE_CARD_SELECTED = "bg-gradient-to-br from-white via-emerald-50/80 to-teal-50/60 dark:from-emerald-50/15 dark:via-white/8 dark:to-teal-50/10 border-emerald-400/80 dark:border-emerald-400/50 shadow-lg shadow-emerald-500/15 ring-2 ring-emerald-200/70 dark:ring-emerald-400/30 scale-[1.01]";
-  const TECHNIQUE_CARD_UNSELECTED = "bg-white/90 dark:bg-emerald-50/5 border border-emerald-100/90 dark:border-emerald-500/20 hover:border-emerald-300/80 dark:hover:border-emerald-400/40 hover:bg-gradient-to-br hover:from-white hover:to-emerald-50/40 dark:hover:from-emerald-50/10 dark:hover:to-teal-50/8 hover:shadow-md hover:shadow-emerald-500/10 backdrop-blur-sm";
+  const TECHNIQUE_CARD_SELECTED = "bg-gradient-to-br from-white/95 via-emerald-50/40 to-teal-50/30 dark:from-emerald-50/10 dark:via-white/5 dark:to-teal-50/5 border-emerald-300/40 dark:border-emerald-400/25 shadow-sm ring-1 ring-emerald-200/40 dark:ring-emerald-400/20 scale-[1.01]";
+  const TECHNIQUE_CARD_UNSELECTED = "bg-white/50 dark:bg-emerald-50/[0.02] border border-emerald-100/35 dark:border-emerald-500/10 hover:border-emerald-200/40 dark:hover:border-emerald-400/20 hover:bg-white/70 dark:hover:bg-emerald-50/[0.04] backdrop-blur-sm";
   const TECHNIQUE_ICON_SELECTED = "bg-gradient-to-br from-emerald-400 to-emerald-600 text-white shadow-lg shadow-emerald-500/35 scale-105";
   const TECHNIQUE_ICON_UNSELECTED = "bg-white dark:bg-emerald-50/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200/70 dark:border-emerald-500/25 group-hover:border-emerald-400/60 group-hover:bg-gradient-to-br group-hover:from-white group-hover:to-emerald-50 dark:group-hover:bg-emerald-50/15";
 
@@ -765,7 +765,7 @@ export function BreatheSection({
           )}
         />
         {isSelected && (
-          <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-emerald-50 via-white to-teal-50/50 dark:from-emerald-950/40 dark:via-transparent dark:to-teal-950/30" />
+          <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-emerald-50/30 via-white/30 to-teal-50/20 dark:from-emerald-950/20 dark:via-transparent dark:to-teal-950/15" />
         )}
         <div
           className={cn(
