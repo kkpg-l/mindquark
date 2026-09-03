@@ -1,5 +1,9 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
+import { motion, useAnimation } from "framer-motion";
 import { cn } from "@/lib/utils";
+
+const cursorImg =
+  "url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDMyIDMyIj4KICA8Y2lyY2xlIGN4PSIxNiIgY3k9IjE2IiByPSIxNSIgc3R5bGU9ImZpbGw6I2ZmZjtzdHJva2U6IzAwMDtzdHJva2Utd2lkdGg6MXB4OyIgLz4KPC9zdmc+'), auto";
 
 export interface ScratchToRevealProps {
   width?: number;
@@ -22,6 +26,7 @@ export const ScratchToReveal: React.FC<ScratchToRevealProps> = ({
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const controls = useAnimation();
   const [isScratching, setIsScratching] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
@@ -115,12 +120,21 @@ export const ScratchToReveal: React.FC<ScratchToRevealProps> = ({
       if (percentage >= minScratchPercentage) {
         completedCalledRef.current = true;
         setIsCompleted(true);
+        ctx.clearRect(0, 0, totalW, totalH);
+
+        // Inspira UI signature celebratory wiggle animation on completion
+        controls.start({
+          scale: [1, 1.05, 1],
+          rotate: [0, 10, -10, 10, -10, 0],
+          transition: { duration: 0.5, ease: "easeInOut" },
+        });
+
         if (onComplete) onComplete();
       }
     } catch {
       // Ignored for cross-origin or canvas errors
     }
-  }, [width, height, minScratchPercentage, onComplete]);
+  }, [width, height, minScratchPercentage, onComplete, controls]);
 
   // Throttled check to avoid blocking the GPU/main thread during active dragging
   const scheduleCheckCompletion = useCallback(() => {
@@ -215,15 +229,30 @@ export const ScratchToReveal: React.FC<ScratchToRevealProps> = ({
   };
 
   return (
-    <div
+    <motion.div
       ref={containerRef}
-      style={{ width, height }}
+      animate={controls}
+      style={{
+        width,
+        height,
+        cursor: cursorImg,
+      }}
       className={cn("relative select-none overflow-hidden touch-none", className)}
     >
       {/* Background Content to Reveal */}
-      <div className="absolute inset-0 size-full flex items-center justify-center">
+      <motion.div
+        animate={
+          isCompleted
+            ? {
+                scale: [0.95, 1.08, 1],
+                transition: { duration: 0.45, ease: "easeOut" },
+              }
+            : {}
+        }
+        className="absolute inset-0 size-full flex items-center justify-center"
+      >
         {children}
-      </div>
+      </motion.div>
 
       {/* Foreground Scratch Canvas with smooth fadeout once completed */}
       <canvas
@@ -234,10 +263,10 @@ export const ScratchToReveal: React.FC<ScratchToRevealProps> = ({
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerCancel}
         className={cn(
-          "absolute inset-0 size-full cursor-pointer touch-none select-none transition-opacity duration-700 ease-out",
+          "absolute inset-0 size-full cursor-pointer touch-none select-none transition-opacity duration-500 ease-out",
           isCompleted ? "opacity-0 pointer-events-none" : "opacity-100"
         )}
       />
-    </div>
+    </motion.div>
   );
 };
