@@ -733,32 +733,19 @@ Take all the time you need. We can gently explore what you're experiencing step-
 
           <Button
             variant="outline"
-            size="sm"
             onClick={openVoiceCallModal}
-            className="inline-flex items-center gap-1.5 rounded-2xl border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20 text-xs h-8 px-2.5 sm:px-3 transition-all cursor-pointer shadow-2xs"
+            className="inline-flex items-center gap-2 rounded-2xl border border-emerald-500/35 bg-emerald-500/15 text-emerald-800 dark:text-emerald-200 hover:bg-emerald-500/25 text-xs sm:text-sm font-semibold h-9 sm:h-10 px-3.5 sm:px-4.5 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer shadow-xs"
             title={isZh ? "向咨询师发起电话关怀" : "Ask your companion to call you"}
           >
-            <Phone className="size-3.5 text-emerald-600 dark:text-emerald-400" />
-            <span className="hidden xs:inline">{isZh ? "电话关怀" : "Call Me"}</span>
+            <Phone className="size-4 sm:size-4.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span>{isZh ? "电话关怀" : "Call Me"}</span>
             {callPhase === "calling" && (
-              <span className="relative flex size-2">
+              <span className="relative flex size-2.5 ml-0.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full size-2 bg-emerald-500" />
+                <span className="relative inline-flex rounded-full size-2.5 bg-emerald-500" />
               </span>
             )}
           </Button>
-
-          {onNavigateToBreathe && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onNavigateToBreathe}
-              className="hidden sm:inline-flex items-center gap-1.5 rounded-2xl border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20 text-xs h-8 px-3 transition-all cursor-pointer"
-            >
-              <Wind className="size-3.5 text-teal-500" />
-              <span>{isZh ? "呼吸减压" : "Breathe Sanctuary"}</span>
-            </Button>
-          )}
 
           <UserActionsMenu
             onClear={clearChat}
