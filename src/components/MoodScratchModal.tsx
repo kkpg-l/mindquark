@@ -132,15 +132,14 @@ export const MoodScratchModal: React.FC<MoodScratchModalProps> = ({
               y: 10,
             }}
             transition={{
-              duration: 0.28,
-              ease: [0.16, 1, 0.3, 1], // Apple / Linear ultra-fluid curve
+              duration: 0.26,
+              ease: [0.16, 1, 0.3, 1],
             }}
             style={{
               willChange: "transform, opacity",
-              transform: "translateZ(0)",
             }}
             onClick={(e) => e.stopPropagation()}
-            className="relative z-10 flex max-h-[90vh] w-[min(480px,calc(100vw-32px))] flex-col overflow-hidden rounded-3xl border border-emerald-500/25 bg-white/95 dark:bg-[#071915]/95 shadow-2xl shadow-emerald-950/20 backdrop-blur-xl"
+            className="relative z-10 flex max-h-[90vh] w-[min(480px,calc(100vw-32px))] flex-col overflow-hidden rounded-3xl border border-emerald-500/25 bg-white dark:bg-[#071915] shadow-2xl shadow-emerald-950/20"
           >
             {/* Top Close Button */}
             <button

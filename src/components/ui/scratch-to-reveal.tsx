@@ -78,7 +78,10 @@ export const ScratchToReveal: React.FC<ScratchToRevealProps> = ({
   }, [width, height, gradientColors]);
 
   useEffect(() => {
-    initCanvas();
+    const rafId = requestAnimationFrame(() => {
+      initCanvas();
+    });
+    return () => cancelAnimationFrame(rafId);
   }, [initCanvas]);
 
   // Calculate percentage of transparent pixels
@@ -86,7 +89,7 @@ export const ScratchToReveal: React.FC<ScratchToRevealProps> = ({
     if (completedCalledRef.current) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
