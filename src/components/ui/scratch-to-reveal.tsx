@@ -31,7 +31,8 @@ export const ScratchToReveal: React.FC<ScratchToRevealProps> = ({
   const [isCompleted, setIsCompleted] = useState(false);
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
   const completedCalledRef = useRef(false);
-  const checkThrottleRef = useRef<number | null>(null);
+  const isInitializedRef = useRef(false);
+  const hasScratchedRef = useRef(false);
 
   // Initialize and paint canvas with gradient
   const initCanvas = useCallback(() => {
@@ -39,6 +40,9 @@ export const ScratchToReveal: React.FC<ScratchToRevealProps> = ({
     if (!canvas) return;
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
     if (!ctx) return;
+
+    // Never overwrite an active user scratch session!
+    if (hasScratchedRef.current || completedCalledRef.current) return;
 
     const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
     canvas.width = width * dpr;
@@ -84,10 +88,13 @@ export const ScratchToReveal: React.FC<ScratchToRevealProps> = ({
   }, [width, height, gradientColors]);
 
   useEffect(() => {
-    const rafId = requestAnimationFrame(() => {
-      initCanvas();
-    });
-    return () => cancelAnimationFrame(rafId);
+    if (!isInitializedRef.current) {
+      isInitializedRef.current = true;
+      const rafId = requestAnimationFrame(() => {
+        initCanvas();
+      });
+      return () => cancelAnimationFrame(rafId);
+    }
   }, [initCanvas]);
 
   // Calculate percentage of transparent pixels
@@ -136,17 +143,6 @@ export const ScratchToReveal: React.FC<ScratchToRevealProps> = ({
     }
   }, [width, height, minScratchPercentage, onComplete, controls]);
 
-  // Throttled check to avoid blocking the GPU/main thread during active dragging
-  const scheduleCheckCompletion = useCallback(() => {
-    if (completedCalledRef.current) return;
-    if (checkThrottleRef.current !== null) return;
-
-    checkThrottleRef.current = window.setTimeout(() => {
-      checkThrottleRef.current = null;
-      checkCompletion();
-    }, 120);
-  }, [checkCompletion]);
-
   // Scratch stroke helper
   const drawStroke = useCallback(
     (clientX: number, clientY: number) => {
@@ -154,6 +150,8 @@ export const ScratchToReveal: React.FC<ScratchToRevealProps> = ({
       if (!canvas) return;
       const ctx = canvas.getContext("2d", { willReadFrequently: true });
       if (!ctx) return;
+
+      hasScratchedRef.current = true;
 
       const rect = canvas.getBoundingClientRect();
       const x = clientX - rect.left;
@@ -176,9 +174,8 @@ export const ScratchToReveal: React.FC<ScratchToRevealProps> = ({
       }
 
       lastPointRef.current = { x, y };
-      scheduleCheckCompletion();
     },
-    [scheduleCheckCompletion]
+    []
   );
 
   // Modern Pointer Events: unified, smooth, never drops contact even if cursor drifts outside
@@ -211,7 +208,7 @@ export const ScratchToReveal: React.FC<ScratchToRevealProps> = ({
     }
     setIsScratching(false);
     lastPointRef.current = null;
-    // Check completion immediately on release
+    // Check completion when user completes their scratch stroke (Inspira UI pattern)
     checkCompletion();
   };
 

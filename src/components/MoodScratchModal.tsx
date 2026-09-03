@@ -16,6 +16,8 @@ export interface MoodScratchModalProps {
   onConfirm?: () => void;
 }
 
+const SCRATCH_GRADIENT_COLORS: [string, string, string] = ["#10B981", "#14B8A6", "#34D399"];
+
 // Tailored therapeutic affirmations corresponding to each selected mood
 const AFFIRMATIONS: Record<string, { zh: string; en: string }> = {
   "🌿": {
@@ -171,10 +173,11 @@ export const MoodScratchModal: React.FC<MoodScratchModalProps> = ({
               {/* Scratch To Reveal Interactive Card */}
               <div className="relative mx-auto flex items-center justify-center rounded-2xl p-1 bg-gradient-to-br from-emerald-100/50 via-white to-teal-100/40 dark:from-emerald-950/40 dark:via-emerald-900/20 dark:to-teal-950/30 border border-emerald-500/20 shadow-inner">
                 <ScratchToReveal
+                  key={isOpen ? "modal-open" : "modal-closed"}
                   width={250}
                   height={250}
-                  minScratchPercentage={40}
-                  gradientColors={["#10B981", "#14B8A6", "#34D399"]}
+                  minScratchPercentage={50}
+                  gradientColors={SCRATCH_GRADIENT_COLORS}
                   onComplete={() => setIsRevealed(true)}
                   className="rounded-xl border border-emerald-500/20 bg-emerald-50/60 dark:bg-emerald-950/50 shadow-sm"
                 >
