@@ -734,15 +734,15 @@ Take all the time you need. We can gently explore what you're experiencing step-
           <Button
             variant="outline"
             onClick={openVoiceCallModal}
-            className="inline-flex items-center gap-2 rounded-2xl border border-emerald-500/35 bg-emerald-500/15 text-emerald-800 dark:text-emerald-200 hover:bg-emerald-500/25 text-xs sm:text-sm font-semibold h-9 sm:h-10 px-3.5 sm:px-4.5 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer shadow-xs"
+            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-500/35 bg-emerald-500/15 text-emerald-800 dark:text-emerald-200 hover:bg-emerald-500/25 text-xs sm:text-sm font-semibold h-[34px] min-w-[136px] sm:min-w-[146px] px-4 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer shadow-xs"
             title={isZh ? "向咨询师发起电话关怀" : "Ask your companion to call you"}
           >
-            <Phone className="size-4 sm:size-4.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <Phone className="size-3.5 sm:size-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
             <span>{isZh ? "电话关怀" : "Call Me"}</span>
             {callPhase === "calling" && (
-              <span className="relative flex size-2.5 ml-0.5">
+              <span className="relative flex size-2 ml-0.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full size-2.5 bg-emerald-500" />
+                <span className="relative inline-flex rounded-full size-2 bg-emerald-500" />
               </span>
             )}
           </Button>
@@ -766,8 +766,16 @@ Take all the time you need. We can gently explore what you're experiencing step-
           role="log"
         >
           {/* Gentle Note: Crisis Hotline Banner with soft lower opacity & clear contrast */}
-          <div className="mx-auto my-2 max-w-lg rounded-2xl bg-amber-500/8 dark:bg-amber-950/25 p-3 text-center text-xs text-amber-950/85 dark:text-amber-200/90 border border-amber-500/25 font-lato-light-italic backdrop-blur-xs shadow-2xs">
-            🌿 <strong>Gentle Note</strong>: MindQuark provides supportive CBT guidance and emotional reflection. It is not a replacement for clinical psychiatric emergency care. If in crisis, call or text <strong>988 (USA/Canada)</strong>.
+          <div className="mx-auto my-2 max-w-xl rounded-2xl bg-amber-500/8 dark:bg-amber-950/25 p-3 text-center text-xs text-amber-950/85 dark:text-amber-200/90 border border-amber-500/25 leading-relaxed backdrop-blur-xs shadow-2xs">
+            {isZh ? (
+              <span>
+                🌿 <strong>温馨提示</strong>：MindQuark 提供基于认知行为（CBT）的倾听与情绪梳理陪伴，不可替代临床精神心理医疗急救。如您或身边的人处于急性危机或严重心理困境，请立即拨打全国心理危机干预热线：<strong>400-161-9995</strong>，或青少年心理热线：<strong>12355</strong>（紧急情况请致电 <strong>110 / 120</strong>）。
+              </span>
+            ) : (
+              <span>
+                🌿 <strong>Gentle Note</strong>: MindQuark provides supportive CBT guidance and emotional reflection. It is not a replacement for clinical psychiatric emergency care. If in crisis, call or text <strong>988 (USA/Canada)</strong> or contact local emergency services immediately.
+              </span>
+            )}
           </div>
 
           {crisisMessage && (
@@ -777,17 +785,17 @@ Take all the time you need. We can gently explore what you're experiencing step-
             >
               <ShieldAlert className="mt-0.5 size-5 shrink-0 text-rose-600" />
               <div className="space-y-2">
-                <p className="font-semibold">Your safety comes first.</p>
+                <p className="font-semibold">{isZh ? "你的生命安全至关重要" : "Your safety comes first."}</p>
                 <p className="whitespace-pre-line text-xs leading-relaxed text-muted-foreground">
                   {crisisMessage}
                 </p>
                 <a
                   className="inline-flex text-xs font-semibold text-rose-700 underline underline-offset-2 dark:text-rose-300"
-                  href="https://findahelpline.com"
+                  href={isZh ? "tel:400-161-9995" : "https://findahelpline.com"}
                   rel="noreferrer"
                   target="_blank"
                 >
-                  Find verified local crisis support
+                  {isZh ? "立即拨打全国心理危机干预热线 (400-161-9995)" : "Find verified local crisis support"}
                 </a>
               </div>
             </div>
