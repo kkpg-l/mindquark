@@ -33,6 +33,7 @@ export const ScratchToReveal: React.FC<ScratchToRevealProps> = ({
   const completedCalledRef = useRef(false);
   const isInitializedRef = useRef(false);
   const hasScratchedRef = useRef(false);
+  const checkThrottleRef = useRef<number | null>(null);
 
   // Initialize and paint canvas with gradient
   const initCanvas = useCallback(() => {
@@ -88,13 +89,7 @@ export const ScratchToReveal: React.FC<ScratchToRevealProps> = ({
   }, [width, height, gradientColors]);
 
   useEffect(() => {
-    if (!isInitializedRef.current) {
-      isInitializedRef.current = true;
-      const rafId = requestAnimationFrame(() => {
-        initCanvas();
-      });
-      return () => cancelAnimationFrame(rafId);
-    }
+    initCanvas();
   }, [initCanvas]);
 
   // Calculate percentage of transparent pixels
@@ -129,11 +124,11 @@ export const ScratchToReveal: React.FC<ScratchToRevealProps> = ({
         setIsCompleted(true);
         ctx.clearRect(0, 0, totalW, totalH);
 
-        // Inspira UI signature celebratory wiggle animation on completion
+        // Inspira UI signature celebratory wiggle & scale pop animation on completion
         controls.start({
-          scale: [1, 1.05, 1],
-          rotate: [0, 10, -10, 10, -10, 0],
-          transition: { duration: 0.5, ease: "easeInOut" },
+          scale: [1, 1.08, 0.96, 1],
+          rotate: [0, 8, -8, 6, -6, 0],
+          transition: { duration: 0.5, ease: "easeOut" },
         });
 
         if (onComplete) onComplete();
@@ -142,6 +137,17 @@ export const ScratchToReveal: React.FC<ScratchToRevealProps> = ({
       // Ignored for cross-origin or canvas errors
     }
   }, [width, height, minScratchPercentage, onComplete, controls]);
+
+  // Throttled check to avoid blocking the GPU/main thread during active dragging
+  const scheduleCheckCompletion = useCallback(() => {
+    if (completedCalledRef.current) return;
+    if (checkThrottleRef.current !== null) return;
+
+    checkThrottleRef.current = window.setTimeout(() => {
+      checkThrottleRef.current = null;
+      checkCompletion();
+    }, 120);
+  }, [checkCompletion]);
 
   // Scratch stroke helper
   const drawStroke = useCallback(
@@ -174,8 +180,9 @@ export const ScratchToReveal: React.FC<ScratchToRevealProps> = ({
       }
 
       lastPointRef.current = { x, y };
+      scheduleCheckCompletion();
     },
-    []
+    [scheduleCheckCompletion]
   );
 
   // Modern Pointer Events: unified, smooth, never drops contact even if cursor drifts outside

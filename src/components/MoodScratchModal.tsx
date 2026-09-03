@@ -176,7 +176,7 @@ export const MoodScratchModal: React.FC<MoodScratchModalProps> = ({
                   key={isOpen ? "modal-open" : "modal-closed"}
                   width={250}
                   height={250}
-                  minScratchPercentage={50}
+                  minScratchPercentage={42}
                   gradientColors={SCRATCH_GRADIENT_COLORS}
                   onComplete={() => setIsRevealed(true)}
                   className="rounded-xl border border-emerald-500/20 bg-emerald-50/60 dark:bg-emerald-950/50 shadow-sm"
