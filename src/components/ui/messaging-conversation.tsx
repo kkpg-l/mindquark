@@ -214,7 +214,7 @@ function MessageActions({
           <Button
             onClick={onReply}
             aria-label="Reply"
-            className="w-full justify-start gap-2 rounded-lg px-2.5 py-1 text-xs"
+            className="w-full justify-start gap-2 rounded-lg px-2.5 py-1 text-xs transition-[background-color] duration-150"
             size="sm"
             type="button"
             variant="ghost"
@@ -226,7 +226,7 @@ function MessageActions({
           <Button
             onClick={onCopy}
             aria-label="Copy"
-            className="w-full justify-start gap-2 rounded-lg px-2.5 py-1 text-xs"
+            className="w-full justify-start gap-2 rounded-lg px-2.5 py-1 text-xs transition-[background-color] duration-150"
             size="sm"
             type="button"
             variant="ghost"
@@ -239,7 +239,7 @@ function MessageActions({
             <Button
               onClick={onDelete}
               aria-label="Delete"
-              className="w-full justify-start gap-2 rounded-lg px-2.5 py-1 text-destructive text-xs hover:bg-destructive/10"
+              className="w-full justify-start gap-2 rounded-lg px-2.5 py-1 text-destructive text-xs transition-[background-color] duration-150 hover:bg-destructive/10"
               size="sm"
               type="button"
               variant="ghost"
@@ -251,7 +251,7 @@ function MessageActions({
 
           <Button
             aria-label="Report"
-            className="w-full justify-start gap-2 rounded-lg px-2.5 py-1 text-xs text-yellow-600 hover:bg-yellow-500/10"
+            className="w-full justify-start gap-2 rounded-lg px-2.5 py-1 text-xs transition-[background-color] duration-150 text-yellow-600 hover:bg-yellow-500/10"
             size="sm"
             type="button"
             variant="ghost"
@@ -792,7 +792,7 @@ Take all the time you need. We can gently explore what you're experiencing step-
             return (
               <div
                 className={cn(
-                  "group my-3 flex gap-2.5 animate-in fade-in-50 duration-300",
+                  "group my-3 flex gap-2.5 animate-in fade-in-50 zoom-in-95 duration-200 ease-out-soft",
                   isMe ? "justify-end" : "justify-start"
                 )}
                 key={msg.id}
@@ -877,22 +877,20 @@ Take all the time you need. We can gently explore what you're experiencing step-
 
           {/* Thinking Orb Animation when AI is generating */}
           {isTyping && (
-            <div className="my-3 flex justify-start animate-in fade-in duration-300">
+            <div className="my-3 flex justify-start animate-in fade-in-50 duration-300">
               <div className="flex max-w-[80%] items-center gap-3 rounded-2xl bg-card/80 border border-emerald-500/20 px-4 py-3 shadow-sm backdrop-blur-md">
                 <Avatar className="size-8 ring-1 ring-border shrink-0">
                   <AvatarImage alt={currentCounselor.name} src={currentCounselor.avatar} />
                   <AvatarFallback>{currentCounselor.name[0]}</AvatarFallback>
                 </Avatar>
-                <div className="flex items-center gap-3">
-                  <ThinkingOrb state="solving" size={64} speed={0.85} style={{ width: 48, height: 48 }} />
-                  <div className="flex flex-col">
-                    <span className="text-xs font-semibold text-foreground">
-                      {currentCounselor.name} is reflecting mindfully...
-                    </span>
-                    <span className="text-[11px] text-muted-foreground font-lato-light-italic">
-                      Formulating empathetic CBT guidance
-                    </span>
-                  </div>
+                <ThinkingOrb state="solving" size={64} speed={0.85} style={{ width: 48, height: 48 }} />
+                <div className="flex flex-col">
+                  <span className="text-xs font-semibold text-foreground">
+                    {currentCounselor.name} is reflecting mindfully...
+                  </span>
+                  <span className="text-[11px] text-muted-foreground font-lato-light-italic">
+                    Formulating empathetic CBT guidance
+                  </span>
                 </div>
               </div>
             </div>
