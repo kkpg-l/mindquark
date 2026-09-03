@@ -42,13 +42,20 @@ export const MoodScratchModal: React.FC<MoodScratchModalProps> = ({
     }
   }, [isOpen]);
 
-  // Lock scroll when open
+  // Lock scroll without layout jitter
   useEffect(() => {
     if (!isOpen || !lockScroll) return;
+    const scrollBarWidth = window.innerWidth - document.documentElement.clientWidth;
     const originalOverflow = document.body.style.overflow;
+    const originalPaddingRight = document.body.style.paddingRight;
+
     document.body.style.overflow = "hidden";
+    if (scrollBarWidth > 0) {
+      document.body.style.paddingRight = `${scrollBarWidth}px`;
+    }
     return () => {
       document.body.style.overflow = originalOverflow;
+      document.body.style.paddingRight = originalPaddingRight;
     };
   }, [isOpen, lockScroll]);
 
@@ -71,17 +78,17 @@ export const MoodScratchModal: React.FC<MoodScratchModalProps> = ({
           style={{ zIndex: 10000 }}
           className="fixed inset-0 flex h-full w-full items-center justify-center p-4 [perspective:1000px] [transform-style:preserve-3d]"
         >
-          {/* Backdrop with 10px blur as defined in AnimatedModal */}
+          {/* High-performance GPU-composited backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
-            animate={{ opacity: 1, backdropFilter: "blur(10px)" }}
-            exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
-            transition={{ duration: 0.22, ease: "easeOut" }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
             onClick={() => closeOnOutside && onClose()}
-            className="fixed inset-0 h-full w-full bg-black/50"
+            className="fixed inset-0 h-full w-full bg-black/55 backdrop-blur-md will-change-[opacity]"
           />
 
-          {/* 3D Entrance Spring Animated Modal Body */}
+          {/* Butter-Smooth 3D Entrance Animated Modal Body */}
           <motion.div
             ref={panelRef}
             role="dialog"
@@ -89,9 +96,9 @@ export const MoodScratchModal: React.FC<MoodScratchModalProps> = ({
             tabIndex={-1}
             initial={{
               opacity: 0,
-              scale: 0.5,
-              rotateX: 80,
-              y: 40,
+              scale: 0.88,
+              rotateX: 20,
+              y: 28,
             }}
             animate={{
               opacity: 1,
@@ -101,14 +108,21 @@ export const MoodScratchModal: React.FC<MoodScratchModalProps> = ({
             }}
             exit={{
               opacity: 0,
-              scale: 0.8,
+              scale: 0.92,
               rotateX: 10,
+              y: 12,
             }}
             transition={{
-              opacity: { duration: 0.2, ease: "easeOut" },
-              scale: { type: "spring", stiffness: 260, damping: 15 },
-              rotateX: { type: "spring", stiffness: 260, damping: 15 },
-              y: { type: "spring", stiffness: 260, damping: 15 },
+              type: "spring",
+              stiffness: 280,
+              damping: 24,
+              mass: 0.85,
+            }}
+            style={{
+              transformStyle: "preserve-3d",
+              willChange: "transform, opacity",
+              backfaceVisibility: "hidden",
+              WebkitBackfaceVisibility: "hidden",
             }}
             onClick={(e) => e.stopPropagation()}
             className="relative z-50 flex max-h-[88vh] w-[min(460px,calc(100vw-32px))] flex-col overflow-hidden rounded-2xl border border-emerald-500/20 bg-white dark:border-neutral-800 dark:bg-neutral-950 shadow-2xl"

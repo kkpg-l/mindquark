@@ -31,7 +31,7 @@ export const ScratchToReveal: React.FC<ScratchToRevealProps> = ({
   const initCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
