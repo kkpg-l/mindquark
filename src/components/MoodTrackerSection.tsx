@@ -86,6 +86,10 @@ export const MoodTrackerSection: React.FC<{
     logMoodEntry(selectedMood, energyLevel, valenceLevel, moodNote);
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 2500);
+    // 用户完成每日心情记录后，根据用户选择答案自动弹出心情刮刮卡
+    setTimeout(() => {
+      setShowScratchModal(true);
+    }, 350);
   };
 
   const handleCbtReframe = async () => {
@@ -374,7 +378,9 @@ export const MoodTrackerSection: React.FC<{
         isOpen={showScratchModal}
         onClose={() => setShowScratchModal(false)}
         selectedMood={selectedMood}
-        onConfirm={handleSaveCheckIn}
+        energyLevel={energyLevel}
+        valenceLevel={valenceLevel}
+        moodNote={moodNote}
       />
     </div>
   );

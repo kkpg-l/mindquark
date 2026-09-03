@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Sparkles, CheckCircle2 } from "lucide-react";
+import { X, Sparkles, CheckCircle2, Zap, Heart, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScratchToReveal } from "@/components/ui/scratch-to-reveal";
 import { useLanguage } from "@/lib/i18n";
@@ -9,59 +10,82 @@ export interface MoodScratchModalProps {
   isOpen: boolean;
   onClose: () => void;
   selectedMood: string;
+  energyLevel?: number;
+  valenceLevel?: number;
+  moodNote?: string;
   onConfirm?: () => void;
-  lockScroll?: boolean;
-  closeOnOutside?: boolean;
-  closeOnEsc?: boolean;
-  showClose?: boolean;
 }
+
+// Tailored therapeutic affirmations corresponding to each selected mood
+const AFFIRMATIONS: Record<string, { zh: string; en: string }> = {
+  "🌿": {
+    zh: "身心归位 · 平静即是力量。愿你带着这份从容，安然度过当下的每一刻。",
+    en: "Centered & Grounded. Stillness is quiet strength. Carry this serenity with you.",
+  },
+  "😊": {
+    zh: "阳光满溢 · 珍藏当下的欢愉。将这份喜悦化作前行路上温暖的底色。",
+    en: "Radiant & Grateful. Cherish this warmth; let it illuminate your journey forward.",
+  },
+  "😰": {
+    zh: "深深呼吸 · 允许波澜存在。焦虑只是路过的客人，你永远比想象中更安全。",
+    en: "Breathe deeply. Anxiety is just a passing guest; you are always safe in this moment.",
+  },
+  "😔": {
+    zh: "温和接纳 · 允许自己偶尔电量不足。乌云散去，阳光依然在云层后守候。",
+    en: "Gentle acceptance. It is okay to rest. Behind every cloud, the sunlight patiently waits.",
+  },
+  "😴": {
+    zh: "放下紧绷 · 允许身心全然休息。好好休整，你今天已经做得很棒了。",
+    en: "Surrender tension. Grant your soul deep rest; you have done wonderfully today.",
+  },
+  "😡": {
+    zh: "舒展眉头 · 情绪需要被倾听而非压抑。深呼一口气，让紧绷随风释怀。",
+    en: "Unclench your jaw. Emotions deserve gentle release; let tensions exhale into the wind.",
+  },
+};
 
 export const MoodScratchModal: React.FC<MoodScratchModalProps> = ({
   isOpen,
   onClose,
   selectedMood,
+  energyLevel = 3,
+  valenceLevel = 4,
+  moodNote = "",
   onConfirm,
-  lockScroll = true,
-  closeOnOutside = true,
-  closeOnEsc = true,
-  showClose = true,
 }) => {
   const { language } = useLanguage();
   const [isRevealed, setIsRevealed] = useState(false);
-  const panelRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
 
-  // Extract emoji and label from selectedMood string (e.g. "🌿 Calm & Centered" or "😊 喜悦与感恩")
+  // Client-side portal mounting check
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Extract emoji and label from selectedMood
   const emoji = selectedMood.match(/\p{Extended_Pictographic}/u)?.[0] || "🌿";
   const moodLabel =
     selectedMood.replace(/^\S+\s*/, "") || (language === "zh" ? "平和与安定" : "Calm & Centered");
 
-  // Reset revealed state when modal opens
+  // Pick affirmation
+  const affirmation = AFFIRMATIONS[emoji]
+    ? language === "zh"
+      ? AFFIRMATIONS[emoji].zh
+      : AFFIRMATIONS[emoji].en
+    : language === "zh"
+    ? "身心调和 · 活在当下 · 感受内心的宁静与笃定"
+    : "Inner Harmony · Present Mind · Trusting your inner journey";
+
+  // Reset revealed state when opened
   useEffect(() => {
     if (isOpen) {
       setIsRevealed(false);
     }
   }, [isOpen]);
 
-  // Lock scroll without layout jitter
+  // Handle ESC key
   useEffect(() => {
-    if (!isOpen || !lockScroll) return;
-    const scrollBarWidth = window.innerWidth - document.documentElement.clientWidth;
-    const originalOverflow = document.body.style.overflow;
-    const originalPaddingRight = document.body.style.paddingRight;
-
-    document.body.style.overflow = "hidden";
-    if (scrollBarWidth > 0) {
-      document.body.style.paddingRight = `${scrollBarWidth}px`;
-    }
-    return () => {
-      document.body.style.overflow = originalOverflow;
-      document.body.style.paddingRight = originalPaddingRight;
-    };
-  }, [isOpen, lockScroll]);
-
-  // Handle ESC key to close
-  useEffect(() => {
-    if (!isOpen || !closeOnEsc) return;
+    if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         onClose();
@@ -69,104 +93,93 @@ export const MoodScratchModal: React.FC<MoodScratchModalProps> = ({
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, closeOnEsc, onClose]);
+  }, [isOpen, onClose]);
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <div
-          style={{ zIndex: 10000 }}
-          className="fixed inset-0 flex h-full w-full items-center justify-center p-4 [perspective:1000px] [transform-style:preserve-3d]"
-        >
-          {/* High-performance GPU-composited backdrop */}
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+          {/* Layer 1: Hardware-Accelerated 2D Backdrop (Independent compositing layer) */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
-            onClick={() => closeOnOutside && onClose()}
-            className="fixed inset-0 h-full w-full bg-black/55 backdrop-blur-md will-change-[opacity]"
+            transition={{ duration: 0.22, ease: "easeOut" }}
+            onClick={onClose}
+            className="fixed inset-0 bg-black/50 backdrop-blur-md"
+            style={{ willChange: "opacity" }}
           />
 
-          {/* Butter-Smooth 3D Entrance Animated Modal Body */}
+          {/* Layer 2: Modal Body with Butter-Smooth Native Compositor Curve */}
           <motion.div
-            ref={panelRef}
             role="dialog"
             aria-modal="true"
-            tabIndex={-1}
             initial={{
               opacity: 0,
-              scale: 0.88,
-              rotateX: 20,
-              y: 28,
+              scale: 0.92,
+              y: 18,
             }}
             animate={{
               opacity: 1,
               scale: 1,
-              rotateX: 0,
               y: 0,
             }}
             exit={{
               opacity: 0,
-              scale: 0.92,
-              rotateX: 10,
-              y: 12,
+              scale: 0.94,
+              y: 10,
             }}
             transition={{
-              type: "spring",
-              stiffness: 280,
-              damping: 24,
-              mass: 0.85,
+              duration: 0.28,
+              ease: [0.16, 1, 0.3, 1], // Apple / Linear ultra-fluid curve
             }}
             style={{
-              transformStyle: "preserve-3d",
               willChange: "transform, opacity",
-              backfaceVisibility: "hidden",
-              WebkitBackfaceVisibility: "hidden",
+              transform: "translateZ(0)",
             }}
             onClick={(e) => e.stopPropagation()}
-            className="relative z-50 flex max-h-[88vh] w-[min(460px,calc(100vw-32px))] flex-col overflow-hidden rounded-2xl border border-emerald-500/20 bg-white dark:border-neutral-800 dark:bg-neutral-950 shadow-2xl"
+            className="relative z-10 flex max-h-[90vh] w-[min(480px,calc(100vw-32px))] flex-col overflow-hidden rounded-3xl border border-emerald-500/25 bg-white/95 dark:bg-[#071915]/95 shadow-2xl shadow-emerald-950/20 backdrop-blur-xl"
           >
-            {/* Show Close Button with group-hover rotate/scale */}
-            {showClose && (
-              <button
-                type="button"
-                aria-label="Close"
-                onClick={onClose}
-                className="group absolute top-4 right-4 z-50 p-1 cursor-pointer outline-none"
-              >
-                <X className="h-4 w-4 text-black transition duration-200 group-hover:scale-125 group-hover:rotate-3 dark:text-white" />
-              </button>
-            )}
+            {/* Top Close Button */}
+            <button
+              type="button"
+              aria-label="Close"
+              onClick={onClose}
+              className="group absolute top-4 right-4 z-20 flex size-8 items-center justify-center rounded-full text-slate-400 hover:bg-emerald-500/10 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-pointer outline-none"
+            >
+              <X className="size-4 transition-transform duration-200 group-hover:scale-110" />
+            </button>
 
-            {/* AnimatedModalContent */}
-            <div className="flex flex-1 flex-col p-6 sm:p-7 items-center text-center">
-              {/* Header Badge */}
+            {/* Modal Header & Content */}
+            <div className="flex flex-1 flex-col items-center px-6 pt-6 pb-5 text-center">
+              {/* Badge */}
               <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 px-3 py-0.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 mb-2">
                 <Sparkles className="size-3 text-emerald-500" />
-                <span>{language === "zh" ? "每日情绪盲盒" : "Daily Mood Reveal"}</span>
+                <span>{language === "zh" ? "每日心情记录卡" : "Daily Mood Reveal"}</span>
               </div>
 
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 tracking-tight">
-                {language === "zh" ? "揭晓今日专属心境" : "Reveal Today's Mood"}
+              <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
+                {language === "zh" ? "今日心境专属盲盒" : "Today's Mindset Card"}
               </h3>
-              <p className="mt-1.5 mb-5 text-xs text-gray-500 dark:text-gray-400 leading-relaxed max-w-[260px]">
+              <p className="mt-1 mb-4 text-xs text-slate-500 dark:text-slate-400 leading-relaxed max-w-[280px]">
                 {language === "zh"
-                  ? "在下方涂层轻触划动，刮开属于你的身心能量状态"
-                  : "Gently scratch the cover below to uncover your inner sanctuary energy"}
+                  ? "记录已生成！轻触划动涂层，刮开专属于你的今日心境与疗愈箴言"
+                  : "Check-in logged! Gently scratch the card to reveal your energy state and affirmation"}
               </p>
 
-              {/* Scratch To Reveal Card */}
-              <div className="relative mx-auto flex items-center justify-center rounded-2xl p-1 bg-gradient-to-br from-emerald-100/40 via-white to-teal-100/30 dark:from-emerald-950/40 dark:via-emerald-900/20 dark:to-teal-950/30 border border-emerald-500/20 shadow-inner">
+              {/* Scratch To Reveal Interactive Card */}
+              <div className="relative mx-auto flex items-center justify-center rounded-2xl p-1 bg-gradient-to-br from-emerald-100/50 via-white to-teal-100/40 dark:from-emerald-950/40 dark:via-emerald-900/20 dark:to-teal-950/30 border border-emerald-500/20 shadow-inner">
                 <ScratchToReveal
-                  width={240}
-                  height={240}
-                  minScratchPercentage={45}
+                  width={250}
+                  height={250}
+                  minScratchPercentage={40}
                   gradientColors={["#10B981", "#14B8A6", "#34D399"]}
                   onComplete={() => setIsRevealed(true)}
-                  className="rounded-xl border border-emerald-500/20 bg-emerald-50/50 dark:bg-emerald-950/40 shadow-sm"
+                  className="rounded-xl border border-emerald-500/20 bg-emerald-50/60 dark:bg-emerald-950/50 shadow-sm"
                 >
-                  {/* Revealed Content with Mood Emoji */}
+                  {/* Revealed Content: Bound strictly to user's selected answers */}
                   <div className="flex flex-col items-center justify-center gap-1.5 p-3 select-none">
                     <span
                       className={`text-6xl filter drop-shadow-sm transition-transform duration-500 ${
@@ -175,44 +188,66 @@ export const MoodScratchModal: React.FC<MoodScratchModalProps> = ({
                     >
                       {emoji}
                     </span>
-                    <span className="text-sm font-bold text-emerald-900 dark:text-emerald-200 mt-1">
+                    <span className="text-sm font-bold text-emerald-900 dark:text-emerald-200 mt-0.5">
                       {moodLabel}
                     </span>
-                    <span className="text-[11px] text-emerald-600/80 dark:text-emerald-400/80 font-medium">
-                      {language === "zh" ? "身心调和 · 活在当下" : "Inner Harmony · Present Mind"}
-                    </span>
+
+                    {/* Answer metrics badges */}
+                    <div className="flex items-center gap-2 mt-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">
+                      <span className="inline-flex items-center gap-0.5 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                        <Zap className="size-2.5 text-amber-500" />
+                        {language === "zh" ? `能量 ${energyLevel}/5` : `Energy ${energyLevel}/5`}
+                      </span>
+                      <span className="inline-flex items-center gap-0.5 bg-teal-500/10 px-2 py-0.5 rounded-full border border-teal-500/20">
+                        <Heart className="size-2.5 text-rose-500" />
+                        {language === "zh" ? `效价 ${valenceLevel}/5` : `Valence ${valenceLevel}/5`}
+                      </span>
+                    </div>
+
+                    {/* Therapeutic Affirmation */}
+                    <p className="mt-1 text-[10.5px] text-emerald-800/85 dark:text-emerald-300/85 font-medium leading-relaxed px-2 line-clamp-3">
+                      {affirmation}
+                    </p>
+
+                    {/* User's note if present */}
+                    {moodNote && (
+                      <div className="mt-0.5 inline-flex items-center gap-1 text-[9.5px] text-muted-foreground truncate max-w-[210px]">
+                        <MessageSquare className="size-2.5 shrink-0" />
+                        <span className="truncate italic">"{moodNote}"</span>
+                      </div>
+                    )}
                   </div>
                 </ScratchToReveal>
               </div>
 
               {/* Status Feedback */}
               <p
-                className={`mt-3.5 text-[11px] font-medium transition-all duration-300 flex items-center justify-center gap-1 ${
+                className={`mt-3 text-[11px] font-medium transition-all duration-300 flex items-center justify-center gap-1 ${
                   isRevealed
                     ? "text-emerald-600 dark:text-emerald-400 font-semibold"
-                    : "text-gray-400 dark:text-gray-500"
+                    : "text-slate-400 dark:text-slate-500"
                 }`}
               >
                 {isRevealed ? (
                   <>
                     <CheckCircle2 className="size-3.5 text-emerald-500" />
-                    <span>{language === "zh" ? "已完全揭晓！愿你拥有从容惬意的一天" : "Revealed! Wishing you a mindful day"}</span>
+                    <span>{language === "zh" ? "🎉 盲盒已开启 · 愿你心境从容温和" : "Revealed! Wishing you an inspired, peaceful day"}</span>
                   </>
                 ) : (
-                  <span>{language === "zh" ? "手指或鼠标划动卡片以刮开" : "Swipe or click & drag to scratch"}</span>
+                  <span>{language === "zh" ? "划动手指或按住鼠标刮开涂层" : "Swipe or drag mouse to scratch & reveal"}</span>
                 )}
               </p>
             </div>
 
-            {/* AnimatedModalFooter */}
-            <div className="flex justify-end gap-2 bg-gray-100 p-4 dark:bg-neutral-900 border-t border-gray-200/50 dark:border-neutral-800">
+            {/* Footer Actions */}
+            <div className="flex items-center justify-end gap-2.5 bg-slate-50 dark:bg-black/30 px-6 py-3.5 border-t border-slate-100 dark:border-white/5">
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={onClose}
-                className="rounded-lg text-xs px-3.5 border-gray-300 dark:border-neutral-700 hover:bg-gray-200/60 dark:hover:bg-neutral-800 cursor-pointer"
+                className="rounded-xl text-xs px-3.5 text-muted-foreground hover:bg-muted cursor-pointer"
               >
-                {language === "zh" ? "取消" : "Cancel"}
+                {language === "zh" ? "关闭" : "Close"}
               </Button>
               <Button
                 size="sm"
@@ -220,14 +255,15 @@ export const MoodScratchModal: React.FC<MoodScratchModalProps> = ({
                   if (onConfirm) onConfirm();
                   onClose();
                 }}
-                className="rounded-lg text-xs px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-xs cursor-pointer"
+                className="rounded-xl text-xs px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-xs shadow-emerald-500/20 cursor-pointer"
               >
-                {language === "zh" ? "记录并确认" : "Confirm"}
+                {language === "zh" ? "收下今日心语" : "Accept Affirmation"}
               </Button>
             </div>
           </motion.div>
         </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
