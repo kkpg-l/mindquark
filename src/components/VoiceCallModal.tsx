@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Phone, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -18,6 +18,8 @@ export interface VoiceCallModalProps {
   onStartCall: () => void;
 }
 
+const CLOSING_DELAY_MS = 150;
+
 export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({
   isOpen,
   onClose,
@@ -31,16 +33,57 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({
   callStatusText,
   onStartCall,
 }) => {
-  if (!isOpen) return null;
+  const [isClosing, setIsClosing] = useState(false);
+  const closingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clean up timer if modal closes unexpectedly or reopens while closing
+  useEffect(() => {
+    return () => {
+      if (closingTimerRef.current !== null) {
+        clearTimeout(closingTimerRef.current);
+      }
+    };
+  }, []);
+
+  const startClosing = () => {
+    if (isClosing) return;
+    setIsClosing(true);
+    if (closingTimerRef.current !== null) {
+      clearTimeout(closingTimerRef.current);
+    }
+    // Fallback: if onAnimationEnd never fires, force-close after animation + margin
+    closingTimerRef.current = setTimeout(() => {
+      closingTimerRef.current = null;
+      setIsClosing(false);
+      onClose();
+    }, CLOSING_DELAY_MS + 50);
+  };
+
+  const handleExitAnimationEnd = (event: React.AnimationEvent<HTMLDivElement>) => {
+    if (!event.animationName.includes("exit")) return;
+    if (closingTimerRef.current !== null) {
+      clearTimeout(closingTimerRef.current);
+      closingTimerRef.current = null;
+    }
+    setIsClosing(false);
+    onClose();
+  };
+
+  if (!isOpen && !isClosing) {
+    return null;
+  }
 
   return (
     <div
       aria-label="Call Me dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm"
+      className={`fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm bg-black/45 ${isClosing ? "animate-out fade-out duration-150" : ""}`}
       role="dialog"
     >
-      <div className="w-full max-w-sm animate-in fade-in-50 zoom-in-95 rounded-2xl border border-emerald-500/30 bg-[#f8fbf9] p-5 shadow-2xl dark:bg-[#04120f]">
+      <div
+        className={`w-full max-w-sm rounded-2xl border border-emerald-500/30 bg-[#f8fbf9] p-5 shadow-2xl dark:bg-[#04120f] ${isClosing ? "animate-out fade-out zoom-out-95 duration-150" : "animate-in fade-in-50 zoom-in-95 duration-200"}`}
+        onAnimationEnd={handleExitAnimationEnd}
+      >
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm font-semibold text-emerald-950 dark:text-emerald-50">
             <Phone className="size-4 text-emerald-600" />
@@ -49,7 +92,7 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({
           <button
             aria-label="Close call dialog"
             className="rounded-lg p-1 text-emerald-950/50 transition-colors hover:text-emerald-950 dark:text-emerald-50/50 dark:hover:text-emerald-50 cursor-pointer"
-            onClick={onClose}
+            onClick={startClosing}
             type="button"
           >
             <X className="size-4" />
@@ -75,7 +118,7 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({
             <Button
               variant="outline"
               size="sm"
-              onClick={onClose}
+              onClick={startClosing}
               className="rounded-xl border-emerald-500/30 text-xs px-4 text-emerald-800 dark:text-emerald-200 hover:bg-emerald-500/10 cursor-pointer"
             >
               Keep Chatting (Minimize)
@@ -124,6 +167,7 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({
           </div>
         )}
       </div>
+
     </div>
   );
 };
