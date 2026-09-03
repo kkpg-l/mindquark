@@ -26,12 +26,13 @@ export const ScratchToReveal: React.FC<ScratchToRevealProps> = ({
   const [isCompleted, setIsCompleted] = useState(false);
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
   const completedCalledRef = useRef(false);
+  const checkThrottleRef = useRef<number | null>(null);
 
   // Initialize and paint canvas with gradient
   const initCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
     if (!ctx) return;
 
     const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
@@ -89,7 +90,7 @@ export const ScratchToReveal: React.FC<ScratchToRevealProps> = ({
     if (completedCalledRef.current) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
     if (!ctx) return;
 
     const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
@@ -99,7 +100,7 @@ export const ScratchToReveal: React.FC<ScratchToRevealProps> = ({
     try {
       const imgData = ctx.getImageData(0, 0, totalW, totalH);
       const pixels = imgData.data;
-      const step = 8 * 4; // Sample every 8th pixel for 60fps performance
+      const step = 16 * 4; // Fast sparse sampling for instant completion check
       let transparentPixels = 0;
       let totalSampled = 0;
 
@@ -121,12 +122,23 @@ export const ScratchToReveal: React.FC<ScratchToRevealProps> = ({
     }
   }, [width, height, minScratchPercentage, onComplete]);
 
+  // Throttled check to avoid blocking the GPU/main thread during active dragging
+  const scheduleCheckCompletion = useCallback(() => {
+    if (completedCalledRef.current) return;
+    if (checkThrottleRef.current !== null) return;
+
+    checkThrottleRef.current = window.setTimeout(() => {
+      checkThrottleRef.current = null;
+      checkCompletion();
+    }, 120);
+  }, [checkCompletion]);
+
   // Scratch stroke helper
-  const scratch = useCallback(
+  const drawStroke = useCallback(
     (clientX: number, clientY: number) => {
       const canvas = canvasRef.current;
       if (!canvas) return;
-      const ctx = canvas.getContext("2d");
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
       if (!ctx) return;
 
       const rect = canvas.getBoundingClientRect();
@@ -134,7 +146,7 @@ export const ScratchToReveal: React.FC<ScratchToRevealProps> = ({
       const y = clientY - rect.top;
 
       ctx.globalCompositeOperation = "destination-out";
-      ctx.lineWidth = 36;
+      ctx.lineWidth = 42;
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
 
@@ -145,50 +157,61 @@ export const ScratchToReveal: React.FC<ScratchToRevealProps> = ({
         ctx.stroke();
       } else {
         ctx.beginPath();
-        ctx.arc(x, y, 18, 0, Math.PI * 2);
+        ctx.arc(x, y, 21, 0, Math.PI * 2);
         ctx.fill();
       }
 
       lastPointRef.current = { x, y };
-      checkCompletion();
+      scheduleCheckCompletion();
     },
-    [checkCompletion]
+    [scheduleCheckCompletion]
   );
 
-  // Mouse handlers
-  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  // Modern Pointer Events: unified, smooth, never drops contact even if cursor drifts outside
+  const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    // Only respond to primary mouse button / single touch
+    if (e.button !== 0 && e.pointerType === "mouse") return;
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // Ignore if pointer capture not supported
+    }
     setIsScratching(true);
     lastPointRef.current = null;
-    scratch(e.clientX, e.clientY);
+    drawStroke(e.clientX, e.clientY);
   };
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (!isScratching) return;
-    scratch(e.clientX, e.clientY);
+    drawStroke(e.clientX, e.clientY);
   };
 
-  const handleMouseUp = () => {
-    setIsScratching(false);
-    lastPointRef.current = null;
-  };
-
-  // Touch handlers with passive prevention
-  const handleTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
-    if (e.touches.length > 0) {
-      setIsScratching(true);
-      lastPointRef.current = null;
-      scratch(e.touches[0].clientX, e.touches[0].clientY);
+  const handlePointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!isScratching) return;
+    try {
+      if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }
+    } catch {
+      // Ignore
     }
-  };
-
-  const handleTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
-    if (!isScratching || e.touches.length === 0) return;
-    scratch(e.touches[0].clientX, e.touches[0].clientY);
-  };
-
-  const handleTouchEnd = () => {
     setIsScratching(false);
     lastPointRef.current = null;
+    // Check completion immediately on release
+    checkCompletion();
+  };
+
+  const handlePointerCancel = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    try {
+      if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }
+    } catch {
+      // Ignore
+    }
+    setIsScratching(false);
+    lastPointRef.current = null;
+    checkCompletion();
   };
 
   return (
@@ -205,16 +228,13 @@ export const ScratchToReveal: React.FC<ScratchToRevealProps> = ({
       {/* Foreground Scratch Canvas with smooth fadeout once completed */}
       <canvas
         ref={canvasRef}
-        style={{ width, height }}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
+        style={{ width, height, touchAction: "none" }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
         className={cn(
-          "absolute inset-0 size-full cursor-pointer transition-opacity duration-700 ease-out",
+          "absolute inset-0 size-full cursor-pointer touch-none select-none transition-opacity duration-700 ease-out",
           isCompleted ? "opacity-0 pointer-events-none" : "opacity-100"
         )}
       />
