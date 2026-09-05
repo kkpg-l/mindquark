@@ -71,6 +71,7 @@ export const GuideSection: React.FC<{
         stagger: 0.08,
         duration: 0.5,
         ease: "power3.out",
+        clearProps: "all",
       });
     },
     { scope: containerRef, dependencies: [mode] }
@@ -134,7 +135,7 @@ export const GuideSection: React.FC<{
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Card 1: CBT Thought Studio (即时思维解构) */}
-              <Card className="guide-home-card rounded-3xl p-6 border border-emerald-500/20 bg-card/85 dark:bg-card/70 shadow-md shadow-emerald-500/5 backdrop-blur-md flex flex-col justify-between">
+              <Card className="guide-home-card rounded-3xl p-6 border border-emerald-500/20 bg-card/50 dark:bg-card/40 shadow-lg shadow-emerald-500/[0.03] backdrop-blur-xl backdrop-saturate-150 flex flex-col justify-between">
                 <div>
                   <div className="flex items-center gap-3 mb-3">
                     <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-purple-500/10 border border-purple-500/25 text-purple-600 dark:text-purple-400">
@@ -214,7 +215,7 @@ export const GuideSection: React.FC<{
               </Card>
 
               {/* Card 2: 30s Somatic Grounding (30s感官着陆) */}
-              <Card className="guide-home-card rounded-3xl p-6 border border-teal-500/20 bg-card/85 dark:bg-card/70 shadow-md shadow-teal-500/5 backdrop-blur-md flex flex-col justify-between">
+              <Card className="guide-home-card rounded-3xl p-6 border border-teal-500/20 bg-card/50 dark:bg-card/40 shadow-lg shadow-teal-500/[0.03] backdrop-blur-xl backdrop-saturate-150 flex flex-col justify-between transition-[transform,box-shadow,border-color] duration-300 ease-out-soft hover:-translate-y-1 hover:shadow-xl hover:shadow-teal-500/10 hover:border-teal-500/35">
                 <div>
                   <div className="flex items-center gap-3 mb-3">
                     <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-teal-500/10 border border-teal-500/25 text-teal-600 dark:text-teal-400">
@@ -270,7 +271,7 @@ export const GuideSection: React.FC<{
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Card 3: Cognitive Assessment */}
-              <Card className="guide-home-card rounded-3xl p-6 border border-emerald-500/20 bg-card/85 dark:bg-card/70 shadow-md shadow-emerald-500/5 backdrop-blur-md flex flex-col justify-between">
+              <Card className="guide-home-card rounded-3xl p-6 border border-emerald-500/20 bg-card/50 dark:bg-card/40 shadow-lg shadow-emerald-500/[0.03] backdrop-blur-xl backdrop-saturate-150 flex flex-col justify-between">
                 <div>
                   <div className="flex items-center gap-3 mb-3">
                     <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 dark:text-emerald-400">
@@ -310,14 +311,14 @@ export const GuideSection: React.FC<{
                     </p>
                   ) : (
                     <p className="text-center text-[11px] text-muted-foreground">
-                      {isZh ? "暂无自测记录 — 初次评估约需 3 分钟。" : "No assessment yet — the first one takes about 3 minutes."}
+                      {isZh ? "暂无自测记录 · 约需 3 分钟" : "No assessment yet · takes ~3 minutes"}
                     </p>
                   )}
                 </div>
               </Card>
 
               {/* Card 4: 7-Step Reframe Wizard */}
-              <Card className="guide-home-card rounded-3xl p-6 border border-teal-500/20 bg-card/85 dark:bg-card/70 shadow-md shadow-teal-500/5 backdrop-blur-md flex flex-col justify-between">
+              <Card className="guide-home-card rounded-3xl p-6 border border-teal-500/20 bg-card/50 dark:bg-card/40 shadow-lg shadow-teal-500/[0.03] backdrop-blur-xl backdrop-saturate-150 flex flex-col justify-between transition-[transform,box-shadow,border-color] duration-300 ease-out-soft hover:-translate-y-1 hover:shadow-xl hover:shadow-teal-500/10 hover:border-teal-500/35">
                 <div>
                   <div className="flex items-center gap-3 mb-3">
                     <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-teal-500/10 border border-teal-500/25 text-teal-600 dark:text-teal-400">
@@ -334,12 +335,12 @@ export const GuideSection: React.FC<{
                   </div>
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     {isZh
-                      ? "专注梳理一个困扰你的想法：记录当下的情境，觉察自动闪过的想法与情绪，识别思维盲区，列出客观事实，提炼出平衡的新想法与行动小步。"
-                      : "Work through a single sticky thought: name the situation, catch the automatic thought, feel the emotion, spot the distortion, weigh the evidence, and land on a balanced reframe with one small step."}
+                      ? "记录情境、觉察念头与情绪、识别思维盲区、权衡证据，提炼出平衡的新视角。"
+                      : "Name the situation, catch the automatic thought, spot the distortion, weigh the evidence, and land on a balanced reframe."}
                   </p>
                   <p className="mt-3 inline-flex items-start gap-1.5 text-[11px] text-muted-foreground">
                     <FileText className="size-3.5 mt-0.5 shrink-0 text-teal-500/80" />
-                    {isZh ? "梳理草稿会自动保存在本地 — 可以随时离开并稍后继续。" : "Your draft auto-saves along the way — leave and pick it back up anytime."}
+                    {isZh ? "草稿自动保存在本地，可随时离开、稍后继续。" : "Your draft auto-saves — leave and pick it back up anytime."}
                   </p>
                 </div>
 

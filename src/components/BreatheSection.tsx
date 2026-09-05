@@ -447,7 +447,7 @@ export function BreatheSection({
 
   // Shared technique card styles (used by both mapped techniques and the 54321 card)
   const TECHNIQUE_CARD_SELECTED = "bg-gradient-to-br from-white/95 via-emerald-50/40 to-teal-50/30 dark:from-emerald-50/10 dark:via-white/5 dark:to-teal-50/5 border-emerald-300/40 dark:border-emerald-400/25 shadow-sm ring-1 ring-emerald-200/40 dark:ring-emerald-400/20 scale-[1.01]";
-  const TECHNIQUE_CARD_UNSELECTED = "bg-white/50 dark:bg-emerald-50/[0.02] border border-emerald-100/35 dark:border-emerald-500/10 hover:border-emerald-200/40 dark:hover:border-emerald-400/20 hover:bg-white/70 dark:hover:bg-emerald-50/[0.04] backdrop-blur-sm";
+  const TECHNIQUE_CARD_UNSELECTED = "bg-card/40 dark:bg-card/30 border border-white/15 dark:border-white/[0.06] hover:border-emerald-300/50 dark:hover:border-emerald-400/20 hover:bg-card/60 dark:hover:bg-card/45 backdrop-blur-xl backdrop-saturate-150";
   const TECHNIQUE_ICON_SELECTED = "bg-gradient-to-br from-emerald-400 to-emerald-600 text-white shadow-lg shadow-emerald-500/35 scale-105";
   const TECHNIQUE_ICON_UNSELECTED = "bg-white dark:bg-emerald-50/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200/70 dark:border-emerald-500/25 group-hover:border-emerald-400/60 group-hover:bg-gradient-to-br group-hover:from-white group-hover:to-emerald-50 dark:group-hover:bg-emerald-50/15";
 
@@ -871,7 +871,7 @@ export function BreatheSection({
         <div className="breath-stage-column lg:col-span-7">
           <div ref={contentAreaRef} className="breath-active-container">
             {selectedTechnique !== "54321" ? (
-              <div className="rounded-3xl bg-gradient-to-br from-white via-emerald-50/30 to-teal-50/20 dark:from-emerald-50/10 dark:via-white/5 dark:to-teal-50/8 border border-emerald-500/20 dark:border-emerald-400/25 backdrop-blur-xl shadow-xl shadow-emerald-500/8 p-5 sm:p-7 flex flex-col items-center justify-center space-y-6 relative overflow-hidden">
+              <div className="rounded-3xl bg-gradient-to-br from-white/60 via-emerald-50/30 to-teal-50/20 dark:from-emerald-50/10 dark:via-white/5 dark:to-teal-50/8 border border-white/15 dark:border-white/[0.08] backdrop-blur-xl backdrop-saturate-150 shadow-xl shadow-emerald-500/[0.06] p-5 sm:p-7 flex flex-col items-center justify-center space-y-6 relative overflow-hidden">
                 {/* Top Row Info & Sound Bell Toggle */}
                 <div className="w-full flex items-center justify-between z-10 px-1">
                   <div className="flex items-center gap-2">
@@ -1263,7 +1263,7 @@ export function BreatheSection({
                 </div>
 
                 {/* Scientific Mechanism Note */}
-                <div className="w-full p-3.5 rounded-2xl bg-gradient-to-r from-emerald-50/60 via-white to-teal-50/40 dark:from-emerald-50/10 dark:via-white/5 dark:to-teal-50/8 border border-emerald-200/70 dark:border-emerald-500/20 text-xs text-muted-foreground flex items-start gap-2.5 shadow-sm backdrop-blur-sm">
+                <div className="w-full p-3.5 rounded-2xl bg-gradient-to-r from-emerald-50/40 via-white/50 to-teal-50/30 dark:from-emerald-50/10 dark:via-white/5 dark:to-teal-50/8 border border-white/15 dark:border-white/[0.06] text-xs text-muted-foreground flex items-start gap-2.5 shadow-sm backdrop-blur-xl backdrop-saturate-150">
                   <Info className="size-4 text-emerald-500 shrink-0 mt-0.5" />
                   <div className="space-y-0.5 leading-relaxed text-left">
                     <span className="font-bold text-emerald-800 dark:text-emerald-200">{language === "zh" ? "神经生理学机制：" : "Neurophysiological Mechanism:"}</span>
@@ -1289,7 +1289,7 @@ export function BreatheSection({
               </div>
             ) : (
               /* 5-4-3-2-1 Somatic Grounding Interactive Step-by-Step Guide */
-              <div className="rounded-3xl bg-gradient-to-br from-white via-emerald-50/30 to-teal-50/20 dark:from-emerald-50/10 dark:via-white/5 dark:to-teal-50/8 border border-emerald-500/20 dark:border-emerald-400/25 backdrop-blur-xl shadow-xl shadow-emerald-500/8 p-5 sm:p-7 space-y-5">
+              <div className="rounded-3xl bg-gradient-to-br from-white/60 via-emerald-50/30 to-teal-50/20 dark:from-emerald-50/10 dark:via-white/5 dark:to-teal-50/8 border border-white/15 dark:border-white/[0.08] backdrop-blur-xl backdrop-saturate-150 shadow-xl shadow-emerald-500/[0.06] p-5 sm:p-7 space-y-5">
                 <div className="space-y-1">
                   <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-3.5 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
                     <ShieldCheck className="size-3.5" />

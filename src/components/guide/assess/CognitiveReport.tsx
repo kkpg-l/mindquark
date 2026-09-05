@@ -140,7 +140,7 @@ export const CognitiveReport: React.FC<CognitiveReportProps> = ({
       </div>
 
       {narrative && (
-        <Card className="report-card rounded-3xl border border-emerald-500/20 bg-card/85 dark:bg-card/70 shadow-md shadow-emerald-500/5 backdrop-blur-md p-6 space-y-3">
+        <Card className="report-card rounded-3xl border border-emerald-500/20 bg-card/50 dark:bg-card/40 shadow-lg shadow-emerald-500/[0.03] backdrop-blur-xl backdrop-saturate-150 p-6 space-y-3">
           <div className="flex items-center gap-2">
             <div className="flex size-8 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 dark:text-emerald-400">
               <Sparkles className="size-4" />
@@ -162,7 +162,7 @@ export const CognitiveReport: React.FC<CognitiveReportProps> = ({
         </Card>
       )}
 
-      <Card className="report-card rounded-3xl border border-emerald-500/20 bg-card/85 dark:bg-card/70 shadow-md shadow-emerald-500/5 backdrop-blur-md p-6">
+      <Card className="report-card rounded-3xl border border-emerald-500/20 bg-card/50 dark:bg-card/40 shadow-lg shadow-emerald-500/[0.03] backdrop-blur-xl backdrop-saturate-150 p-6">
         <h3 className="font-bold text-base text-foreground mb-4">Thinking tendencies</h3>
         <div className="flex flex-col sm:flex-row items-center gap-6">
           <div className="w-full sm:w-1/2">
@@ -189,7 +189,7 @@ export const CognitiveReport: React.FC<CognitiveReportProps> = ({
         </div>
       </Card>
 
-      <Card className="report-card rounded-3xl border border-emerald-500/20 bg-card/85 dark:bg-card/70 shadow-md shadow-emerald-500/5 backdrop-blur-md p-6 space-y-5">
+      <Card className="report-card rounded-3xl border border-emerald-500/20 bg-card/50 dark:bg-card/40 shadow-lg shadow-emerald-500/[0.03] backdrop-blur-xl backdrop-saturate-150 p-6 space-y-5">
         <h3 className="font-bold text-base text-foreground">Current energy states</h3>
         <StateGauge
           label="Burnout load"
@@ -222,7 +222,7 @@ export const CognitiveReport: React.FC<CognitiveReportProps> = ({
         />
       </Card>
 
-      <Card className="report-card rounded-3xl border border-emerald-500/20 bg-card/85 dark:bg-card/70 shadow-md shadow-emerald-500/5 backdrop-blur-md p-6 space-y-4">
+      <Card className="report-card rounded-3xl border border-emerald-500/20 bg-card/50 dark:bg-card/40 shadow-lg shadow-emerald-500/[0.03] backdrop-blur-xl backdrop-saturate-150 p-6 space-y-4">
         <h3 className="font-bold text-base text-foreground">Where your attention lives</h3>
         <AttentionMapView attention={snapshot.attention} driftWarnings={driftWarnings} />
         <p className="text-[11px] text-muted-foreground border-t border-emerald-500/10 pt-3">
@@ -239,7 +239,7 @@ export const CognitiveReport: React.FC<CognitiveReportProps> = ({
       </Card>
 
       {recommendations.length > 0 && (
-        <Card className="report-card rounded-3xl border border-emerald-500/20 bg-card/85 dark:bg-card/70 shadow-md shadow-emerald-500/5 backdrop-blur-md p-6 space-y-5">
+        <Card className="report-card rounded-3xl border border-emerald-500/20 bg-card/50 dark:bg-card/40 shadow-lg shadow-emerald-500/[0.03] backdrop-blur-xl backdrop-saturate-150 p-6 space-y-5">
           <h3 className="font-bold text-base text-foreground">Gentle suggestions</h3>
           <ul className="space-y-2.5">
             {recommendations.map((rec, i) => (

@@ -87,7 +87,7 @@ export const MoodTrackerSection: React.FC<{
       </div>
 
       {/* Main Journal Card - Refined, Balanced & Focused */}
-      <Card className="mood-main-card rounded-3xl p-6 sm:p-9 border border-emerald-500/20 bg-card/85 dark:bg-card/70 shadow-md shadow-emerald-500/5 backdrop-blur-md space-y-7">
+      <Card className="mood-main-card rounded-3xl p-6 sm:p-9 border border-emerald-500/20 bg-card/50 dark:bg-card/40 shadow-lg shadow-emerald-500/[0.03] backdrop-blur-xl backdrop-saturate-150 space-y-7">
         {/* Card Header */}
         <CardHeader className="p-0 flex flex-row items-center justify-between pb-5 border-b border-border/50">
           <div className="flex items-center gap-3">
@@ -137,13 +137,21 @@ export const MoodTrackerSection: React.FC<{
                     type="button"
                     onClick={() => setSelectedMood(opt.label)}
                     className={cn(
-                      "flex items-center gap-3 rounded-2xl border p-3.5 text-xs font-medium transition-all duration-150 active:scale-[0.98] cursor-pointer text-left",
+                      "group flex items-center gap-3 rounded-2xl border p-3.5 text-xs font-medium transition-all duration-150 active:scale-[0.98] cursor-pointer text-left",
                       isSelected
                         ? "border-emerald-500/70 bg-emerald-500/10 text-emerald-900 dark:text-emerald-100 ring-2 ring-emerald-500/30 font-semibold shadow-xs scale-[1.01]"
                         : "border-border/60 bg-background/50 hover:bg-muted/60 text-foreground/80 hover:border-emerald-500/30"
                     )}
                   >
-                    <span className="text-xl shrink-0">{opt.emoji}</span>
+                    <span
+                      key={String(isSelected)}
+                      className={cn(
+                        "text-xl shrink-0 transition-transform duration-200 group-hover:scale-110",
+                        isSelected && "animate-pop-in"
+                      )}
+                    >
+                      {opt.emoji}
+                    </span>
                     <span className="truncate">{opt.label.replace(/^\S+\s*/, "")}</span>
                   </button>
                 );
@@ -254,7 +262,7 @@ export const MoodTrackerSection: React.FC<{
 
       {/* Gentle Navigation Hint */}
       <div className="text-center text-xs text-muted-foreground/80 font-lato-light-italic">
-        <span>💡 {language === "zh" ? "想要拆解负向念头或练习 30 秒感官着陆？可在上方导航进入「思绪梳理」体验完整工具。" : "Want to unpack sticky thoughts or practice somatic grounding? Head over to the 'Guide' tab."}</span>
+        <span>{language === "zh" ? "想拆解念头或练习感官着陆？去「思绪梳理」看看。" : "Unpack a sticky thought or try grounding in the Guide tab."}</span>
       </div>
 
       {/* Scratch To Reveal Animated Modal - Automatic on Save */}

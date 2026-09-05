@@ -76,7 +76,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   }));
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-emerald-900/10 dark:border-emerald-500/15 bg-background/85 dark:bg-card/80 backdrop-blur-xl shadow-xs">
+    <header className="sticky top-0 z-40 w-full border-b border-white/10 dark:border-white/[0.06] bg-background/55 dark:bg-card/40 backdrop-blur-2xl backdrop-saturate-[1.8] shadow-[0_0.5px_0_0_rgba(255,255,255,0.12)] dark:shadow-[0_0.5px_0_0_rgba(255,255,255,0.04)]">
       <div className="container mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
         {/* Logo with emerald badge */}
         <div
@@ -130,10 +130,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                 ref={isActive ? activeRef : null}
                 onClick={() => onTabChange(item.id)}
                 aria-current={isActive ? "page" : undefined}
-                className={`relative z-10 inline-flex cursor-pointer select-none items-center gap-1.5 rounded-full py-1.5 px-3 text-xs sm:text-sm transition-[color,transform] duration-150 ease-out-soft active:scale-[0.97] ${
+                className={`relative z-10 inline-flex cursor-pointer select-none items-center gap-1.5 rounded-full py-1.5 px-3 text-xs sm:text-sm transition-[color,transform,background-color] duration-150 ease-out-soft active:scale-[0.97] ${
                   isActive
                     ? "text-white"
-                    : "text-muted-foreground hover:text-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-emerald-500/10"
                 }`}
               >
                 {item.id === "me" ? (

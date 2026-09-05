@@ -147,7 +147,7 @@ export const AssessmentFlow: React.FC<{
             </Button>
           </div>
 
-          <Card className="assess-landing-item rounded-3xl border border-emerald-500/20 bg-card/85 dark:bg-card/70 shadow-md shadow-emerald-500/5 backdrop-blur-md p-6 sm:p-8 space-y-5">
+          <Card className="assess-landing-item rounded-3xl border border-emerald-500/20 bg-card/50 dark:bg-card/40 shadow-lg shadow-emerald-500/[0.03] backdrop-blur-xl backdrop-saturate-150 p-6 sm:p-8 space-y-5">
             <div className="flex items-center gap-3">
               <div className="flex size-11 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 dark:text-emerald-400">
                 <ClipboardList className="size-5" />

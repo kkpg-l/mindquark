@@ -671,7 +671,7 @@ Take all the time you need. We can gently explore what you're experiencing step-
   return (
     <Card
       className={cn(
-        "mx-auto flex h-[84vh] min-h-[600px] max-w-3xl w-full grow flex-col overflow-hidden border border-emerald-500/20 bg-card/90 dark:bg-card/75 shadow-xl shadow-emerald-500/5 backdrop-blur-xl rounded-3xl",
+        "mx-auto flex h-[84vh] min-h-[600px] max-w-3xl w-full grow flex-col overflow-hidden border border-white/15 dark:border-white/[0.08] bg-card/60 dark:bg-card/45 shadow-xl shadow-black/[0.04] backdrop-blur-2xl backdrop-saturate-[1.8] rounded-3xl",
         className
       )}
     >
@@ -895,7 +895,7 @@ Take all the time you need. We can gently explore what you're experiencing step-
           {/* Thinking Orb Animation when AI is generating */}
           {isTyping && (
             <div className="my-3 flex justify-start animate-in fade-in-50 duration-300">
-              <div className="flex max-w-[80%] items-center gap-3 rounded-2xl bg-card/80 border border-emerald-500/20 px-4 py-3 shadow-sm backdrop-blur-md">
+              <div className="flex max-w-[80%] items-center gap-3 rounded-2xl bg-card/50 dark:bg-card/40 border border-white/15 dark:border-white/[0.08] px-4 py-3 shadow-sm backdrop-blur-xl backdrop-saturate-150">
                 <Avatar className="size-8 ring-1 ring-border shrink-0">
                   <AvatarImage alt={currentCounselor.name} src={currentCounselor.avatar} />
                   <AvatarFallback>{currentCounselor.name[0]}</AvatarFallback>

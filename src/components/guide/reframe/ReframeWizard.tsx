@@ -238,7 +238,7 @@ export const ReframeWizard: React.FC<{
 
       {crisisText && <CrisisNotice text={crisisText} onDismiss={() => setCrisisText(null)} />}
 
-      <Card className="rounded-3xl border border-emerald-500/20 bg-card/85 dark:bg-card/70 shadow-md shadow-emerald-500/5 backdrop-blur-md p-6 sm:p-8">
+      <Card className="rounded-3xl border border-emerald-500/20 bg-card/50 dark:bg-card/40 shadow-lg shadow-emerald-500/[0.03] backdrop-blur-xl backdrop-saturate-150 p-6 sm:p-8">
         <div ref={stepRef}>
           {stepIndex === 0 && <StepSituation session={session} update={update} />}
           {stepIndex === 1 && <StepThought session={session} update={update} />}

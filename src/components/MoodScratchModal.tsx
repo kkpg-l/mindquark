@@ -141,7 +141,7 @@ export const MoodScratchModal: React.FC<MoodScratchModalProps> = ({
               willChange: "transform, opacity",
             }}
             onClick={(e) => e.stopPropagation()}
-            className="relative z-10 flex max-h-[90vh] w-[min(480px,calc(100vw-32px))] flex-col overflow-hidden rounded-3xl border border-emerald-500/25 bg-white dark:bg-[#071915] shadow-2xl shadow-emerald-950/20"
+            className="relative z-10 flex max-h-[90vh] w-[min(480px,calc(100vw-32px))] flex-col overflow-hidden rounded-3xl border border-white/20 dark:border-white/[0.08] bg-card/60 dark:bg-card/50 backdrop-blur-2xl backdrop-saturate-[1.8] shadow-2xl shadow-emerald-950/20"
           >
             {/* Top Close Button */}
             <button
@@ -242,7 +242,7 @@ export const MoodScratchModal: React.FC<MoodScratchModalProps> = ({
             </div>
 
             {/* Footer Actions */}
-            <div className="flex items-center justify-end gap-2.5 bg-slate-50 dark:bg-black/30 px-6 py-3.5 border-t border-slate-100 dark:border-white/5">
+            <div className="flex items-center justify-end gap-2.5 bg-card/40 dark:bg-black/20 backdrop-blur-xl px-6 py-3.5 border-t border-white/10 dark:border-white/[0.06]">
               <Button
                 variant="ghost"
                 size="sm"

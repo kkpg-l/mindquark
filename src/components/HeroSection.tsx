@@ -17,10 +17,13 @@ import {
 } from "lucide-react";
 import { type NavTab } from "./Navbar";
 import { useLanguage } from "@/lib/i18n";
+import { EXPRESSIONS, type ExpressionId } from "@/bot/expressions";
 
 interface HeroSectionProps {
   onStartChat: (initialPrompt?: string) => void;
   onNavigate: (tab: NavTab) => void;
+  botExpression: ExpressionId;
+  onBotExpressionChange: (id: ExpressionId) => void;
 }
 
 interface MoodBubble {
@@ -31,6 +34,8 @@ interface MoodBubble {
 export const HeroSection: React.FC<HeroSectionProps> = ({
   onStartChat,
   onNavigate,
+  botExpression,
+  onBotExpressionChange,
 }) => {
   const heroRef = useRef<HTMLDivElement>(null);
   const { language, t } = useLanguage();
@@ -136,11 +141,37 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               <button
                 key={idx}
                 onClick={() => onStartChat(item.prompt)}
-                className="hero-pill rounded-full border border-emerald-600/20 bg-card/85 dark:bg-card/75 px-4 py-2 text-xs sm:text-sm text-foreground/90 shadow-xs hover:border-emerald-500 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-emerald-500/10 transition-all active:scale-95 font-light backdrop-blur-sm cursor-pointer"
+                className="hero-pill rounded-full border border-white/20 dark:border-white/[0.08] bg-card/50 dark:bg-card/40 px-4 py-2 text-xs sm:text-sm text-foreground/90 shadow-sm hover:border-emerald-500 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-emerald-500/10 transition-all active:scale-95 font-light backdrop-blur-xl backdrop-saturate-150 cursor-pointer"
               >
                 {item.text}
               </button>
             ))}
+          </div>
+        </div>
+
+        {/* Quark Bot Expression Picker */}
+        <div className="mt-8 w-full max-w-2xl">
+          <p className="hero-hint text-xs font-semibold text-emerald-900 dark:text-emerald-300 mb-3 font-lato-light-italic">
+            {t("bot.pickerHint")}
+          </p>
+          <div className="flex flex-wrap justify-center gap-1.5">
+            {EXPRESSIONS.map((expr) => {
+              const active = expr.id === botExpression;
+              return (
+                <button
+                  key={expr.id}
+                  onClick={() => onBotExpressionChange(expr.id)}
+                  aria-pressed={active}
+                  className={`hero-pill rounded-full border px-3 py-1.5 text-[11px] sm:text-xs transition-all active:scale-95 font-light backdrop-blur-xl backdrop-saturate-150 cursor-pointer ${
+                    active
+                      ? "border-emerald-500 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 shadow-sm"
+                      : "border-white/20 dark:border-white/[0.08] bg-card/40 dark:bg-card/30 text-foreground/75 hover:border-emerald-500/60 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-emerald-500/10"
+                  }`}
+                >
+                  {t(`bot.expr${expr.id.charAt(0).toUpperCase()}${expr.id.slice(1)}`)}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -150,7 +181,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           <Card
             onClick={() => onNavigate("chat")}
-            className="hero-card group cursor-pointer p-6 rounded-3xl border-emerald-500/20 bg-card/80 dark:bg-card/60 hover:bg-card/95 transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-500/10 backdrop-blur-md"
+            className="hero-card group cursor-pointer p-6 rounded-3xl border-emerald-500/20 bg-card/50 dark:bg-card/40 hover:bg-card/70 transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-500/10 backdrop-blur-xl backdrop-saturate-150"
           >
             <div className="size-11 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-xs">
               <BrainCircuit className="size-6" />
@@ -163,7 +194,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
           <Card
             onClick={() => onNavigate("mood")}
-            className="hero-card group cursor-pointer p-6 rounded-3xl border-emerald-500/20 bg-card/80 dark:bg-card/60 hover:bg-card/95 transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-500/10 backdrop-blur-md"
+            className="hero-card group cursor-pointer p-6 rounded-3xl border-emerald-500/20 bg-card/50 dark:bg-card/40 hover:bg-card/70 transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-500/10 backdrop-blur-xl backdrop-saturate-150"
           >
             <div className="size-11 rounded-2xl bg-emerald-500/15 text-emerald-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-xs">
               <Compass className="size-6" />
@@ -176,7 +207,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
           <Card
             onClick={() => onNavigate("chat")}
-            className="hero-card group cursor-pointer p-6 rounded-3xl border-emerald-500/20 bg-card/80 dark:bg-card/60 hover:bg-card/95 transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-500/10 backdrop-blur-md"
+            className="hero-card group cursor-pointer p-6 rounded-3xl border-emerald-500/20 bg-card/50 dark:bg-card/40 hover:bg-card/70 transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-500/10 backdrop-blur-xl backdrop-saturate-150"
           >
             <div className="size-11 rounded-2xl bg-teal-500/15 text-teal-600 dark:text-teal-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-xs">
               <HeartHandshake className="size-6" />

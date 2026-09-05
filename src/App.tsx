@@ -9,13 +9,16 @@ import { GuideSection } from "@/components/GuideSection";
 import { MeSection } from "@/components/MeSection";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { IntroSplash } from "@/components/IntroSplash";
+import { CompanionBot } from "@/components/CompanionBot";
 import { LanguageProvider } from "@/lib/i18n";
+import type { ExpressionId } from "@/bot/expressions";
 
 function SanctuaryApp() {
   const [currentTab, setCurrentTab] = useState<NavTab>("hero");
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [showIntro, setShowIntro] = useState(true);
   const [initialChatPrompt, setInitialChatPrompt] = useState<string | undefined>(undefined);
+  const [botExpression, setBotExpression] = useState<ExpressionId>("heureux");
   const contentRef = useRef<HTMLDivElement>(null);
 
   // Toggle Dark Mode
@@ -102,6 +105,8 @@ function SanctuaryApp() {
           <HeroSection
             onStartChat={handleStartChatWithPrompt}
             onNavigate={handleTabSwitch}
+            botExpression={botExpression}
+            onBotExpressionChange={setBotExpression}
           />
         )}
 
@@ -138,6 +143,9 @@ function SanctuaryApp() {
 
         {currentTab === "me" && <MeSection />}
       </main>
+
+      {/* Cloud companion bot — present on every page, eyes follow the cursor */}
+      {!showIntro && <CompanionBot expression={botExpression} />}
     </div>
   );
 }

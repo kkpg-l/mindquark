@@ -80,11 +80,11 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({
     <div
       aria-label="Call Me dialog"
       aria-modal="true"
-      className={`fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm bg-black/45 ${isClosing ? "animate-out fade-out duration-150" : ""}`}
+      className={`fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md bg-black/50 ${isClosing ? "animate-out fade-out duration-150" : ""}`}
       role="dialog"
     >
       <div
-        className={`w-full max-w-sm rounded-2xl border border-emerald-500/30 bg-[#f8fbf9] p-5 shadow-2xl dark:bg-[#04120f] ${isClosing ? "animate-out fade-out zoom-out-95 duration-150" : "animate-in fade-in-50 zoom-in-95 duration-200"}`}
+        className={`w-full max-w-sm rounded-2xl border border-white/20 dark:border-white/[0.08] bg-card/70 dark:bg-card/60 backdrop-blur-2xl backdrop-saturate-[1.8] p-5 shadow-2xl ${isClosing ? "animate-out fade-out zoom-out-95 duration-150" : "animate-in fade-in-50 zoom-in-95 duration-200"}`}
         onAnimationEnd={handleExitAnimationEnd}
       >
         <div className="mb-3 flex items-center justify-between">
