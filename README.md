@@ -22,6 +22,8 @@ MindQuark combines dual empathetic conversational personas with paced somatic br
 | **Dual-Axis Mood Mapping** | 2D Energy vs. Valence mood quadrant tracker with journal note-taking, emotion tagging, and one-click transition into guided chat. |
 | **Crisis Safety Gateway** | Multi-layer local and server-side high-risk screening that short-circuits model inference to immediately return official emergency support resources (988 Lifeline, national mental health hotlines). |
 | **Privacy & Local Personalization** | Local `profileStore` with custom counselor names, preset avatar gallery, local Base64 avatar uploader, dark/light theme toggle, and zero server-side user data retention. |
+| **Animated Companion Bot** | Canvas-rendered BloubBot desktop companion with a custom 2D motion engine (expressions, blinking, gaze tracking, skin system) that reacts to live emotion detection across the site. |
+| **Full Bilingual i18n** | Complete English / 中文 localization via a typed context dictionary with per-key fallback, covering navigation, chat, mood, breathing, and guide subpages. |
 | **Full-Stack CloudBase Deployment** | React 19 + TypeScript + Vite + Tailwind CSS static client hosted on Tencent CloudBase with Serverless Express API gateway. |
 
 ---
@@ -160,7 +162,7 @@ Run the full automated test and quality suite:
 
 ```bash
 npm run typecheck       # TypeScript 0 errors check
-npm test                # Vitest test suite (5 test files, 28/28 unit & component tests passing)
+npm test                # Vitest test suite (11 test files, 89/89 unit & component tests passing)
 npm run build           # Production bundle optimization
 node --check functions/api/index.js # Serverless syntax validation
 ```
