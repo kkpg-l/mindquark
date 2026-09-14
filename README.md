@@ -14,7 +14,7 @@ MindQuark combines dual empathetic conversational personas with paced somatic br
 |---|---|
 | **Fluid Motion & Intro** | GSAP 3 + `@gsap/react` dual-layer Bezier liquid wave morphing, spring-driven typography, smooth tab transitions, and entrance choreography. |
 | **Supportive CBT Conversation** | Dual CBT-informed personas (**Maya** - empathetic & warm; **Liam** - analytical & grounding) with streaming dialogue and offline resilience fallback. |
-| **CBT Cognitive Reframing** | Interactive thought reframing tool (`/api/reframe`): identifies automatic negative thoughts (NAT) across common distortions (All-or-Nothing, Catastrophizing, Mind Reading, Emotional Reasoning) to produce balanced rational perspectives. |
+| **CBT Cognitive Reframing & Guide** | Interactive Quick CBT Studio (`/api/reframe`) and step-by-step Guided Journey (`/api/guide/assess`, `/api/guide/reframe`): identifies automatic negative thoughts (NAT) across common distortions (All-or-Nothing, Catastrophizing, Mind Reading, Emotional Reasoning) to produce balanced rational perspectives. |
 | **AI Dialogue Psychological Audit** | Deep conversation analysis (`/api/analyze`): evaluates recent dialogue for emotional climate, recurring cognitive patterns, and actionable growth recommendations. |
 | **AI Voice Check-in Calls (Phone)** | **CALL-E powered outbound phone companion** (`/api/call/create`, `/api/call/status/:id`): user-requested supportive check-in calls with crisis safety scripts, live dialing status polling, daily per-IP quotas, and zero phone number persistence. |
 | **Somatic Grounding & 7 Breath Modes** | Sacred mandala kinetic breath guide with **7 evidence-based techniques** (4-7-8 Deep Relaxation, Box 4-4-4-4 Focus, Coherent 4-4 HRV Resonance, Triangle Zen Focus, Physiological Sigh Instant Relief, Energy Breath, and 5-4-3-2-1 Sensory Grounding) with Web Audio API synthesized singing bowl / chime sound guidance. |
@@ -39,19 +39,21 @@ Tencent CloudBase Serverless Function (/api)
   ├─ CORS origin allowlist & per-instance request rate limiting
   ├─ Bounded JSON body validation & payload sanitization
   ├─ Shared high-risk safety gateway & crisis short-circuit
-  ├─ Primary / Backup LLM failover (DeepSeek / GLM / OpenRouter / iFlytek MaaS)
-  │    ├─ POST /api/chat     -> Supportive CBT conversation
-  │    ├─ POST /api/reframe  -> Cognitive distortion reframing
-  │    └─ POST /api/analyze  -> Dialogue psychological audit
+  ├─ Primary / Backup LLM failover (askdiandian dots3-note-prev / OpenRouter fallback)
+  │    ├─ POST /api/chat          -> Supportive CBT conversation
+  │    ├─ POST /api/reframe       -> Quick cognitive distortion reframing
+  │    ├─ POST /api/guide/assess  -> Interactive CBT triage assessment
+  │    ├─ POST /api/guide/reframe -> Step-by-step cognitive reframe wizard
+  │    └─ POST /api/analyze       -> Dialogue psychological audit
   ├─ iFlytek Speech Signing Proxy
-  │    ├─ GET  /api/iat-auth -> WebSocket authentication for voice input
-  │    └─ POST /api/tts      -> Signed speech synthesis
+  │    ├─ GET  /api/iat-auth      -> WebSocket authentication for voice input
+  │    └─ POST /api/tts           -> Signed speech synthesis
   ├─ CALL-E Outbound Phone Companion Proxy
   │    ├─ POST /api/call/create     -> Idempotent outbound call scheduling
   │    └─ GET  /api/call/status/:id -> Live call status & structured result polling
   │         └─ https://api.heycall-e.com (Bearer CALLE_API_KEY, server-only)
-  ├─ Anti-Bot Middleware (Optional Tencent Cloud Captcha / 防水墙)
-  └─ GET  /api/health        -> Gateway health check
+  ├─ Anti-Bot Middleware (User-Agent filter, bot honeypot & optional Tencent Captcha)
+  └─ GET  /api/health             -> Gateway health check
 ```
 
 ---
@@ -139,6 +141,10 @@ CALL_MAX_ACTIVE=1
 CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 RATE_LIMIT_WINDOW_MS=60000
 RATE_LIMIT_MAX_REQUESTS=30
+
+# Optional: Anti-Bot Captcha (Tencent Cloud Captcha)
+TCAPTCHA_APP_ID=
+TCAPTCHA_SECRET_KEY=
 ```
 
 Start the API server:
@@ -165,7 +171,7 @@ Run the full automated test and quality suite:
 npm run typecheck       # TypeScript 0 errors check
 npm test                # Vitest test suite (11 test files, 97/97 unit & component tests passing)
 npm run build           # Production bundle optimization
-node --check functions/api/index.js # Serverless syntax validation
+node --check functions/api/index.js && node --check functions/api/calle.js # Serverless syntax validation
 ```
 
 ---
@@ -174,6 +180,9 @@ node --check functions/api/index.js # Serverless syntax validation
 
 1. **Deploy Serverless Function:**
    ```bash
+   # Update function code while preserving console environment variables:
+   tcb fn code update api --dir functions/api -e kkpg-d2ga363tca9086e3e
+   # Or full configuration deploy:
    tcb fn deploy api -e kkpg-d2ga363tca9086e3e
    ```
 2. **Deploy Frontend Static Hosting:**
