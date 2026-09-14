@@ -125,6 +125,39 @@ body {
   animation: bot-float 3.6s ease-in-out infinite;
 }
 
+/* Primary CTA slow shine sweep */
+@keyframes btn-shine {
+  0% {
+    transform: translateX(-160%) skewX(-20deg);
+  }
+  55%,
+  100% {
+    transform: translateX(340%) skewX(-20deg);
+  }
+}
+
+.btn-shine {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-shine::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 32%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.22),
+    transparent
+  );
+  animation: btn-shine 4.8s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  pointer-events: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .bot-float {
     animation: none;

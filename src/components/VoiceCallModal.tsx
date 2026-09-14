@@ -138,12 +138,14 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({
               <input
                 className="w-full rounded-xl border border-emerald-500/30 bg-white px-3 py-2 text-sm text-emerald-950 placeholder:text-emerald-950/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 dark:bg-emerald-950/40 dark:text-emerald-50 dark:placeholder:text-emerald-50/40"
                 onChange={(e) => onPhoneChange(e.target.value)}
-                placeholder={isZh ? "+86 138 0000 0000" : "+1 212 555 0123"}
+                placeholder={isZh ? "例如 +1 212 555 0123" : "+1 212 555 0123"}
                 type="tel"
                 value={callPhone}
               />
               <p className="text-[10px] text-emerald-900/50 dark:text-emerald-100/50 px-1">
-                {isZh ? "格式：+[国家/地区代码][手机号]，例如 +86 138 0000 0000 或 +1 212 555 0123" : "Format: +[country code][number], e.g. +1 212 555 0123 or +86 138 0000 0000"}
+                {isZh
+                  ? "国际格式 +[国家/地区代码][号码]。目前支持美国 +1、新加坡 +65、马来西亚 +60、英国 +44 等海外号码，暂不支持中国大陆 +86。"
+                  : "International format. Supported destinations include US +1, Singapore +65, Malaysia +60, UK +44. Mainland China +86 is not supported yet."}
               </p>
             </div>
             <label className="flex cursor-pointer items-start gap-2 text-xs text-emerald-900/70 dark:text-emerald-100/70">

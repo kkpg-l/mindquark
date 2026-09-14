@@ -66,7 +66,7 @@ export const AvatarUploader: React.FC<AvatarUploaderProps> = ({
             key={i}
             type="button"
             onClick={() => onAvatarChange(url)}
-            className={`relative size-10 rounded-full overflow-hidden border-2 transition-[transform,opacity,border-color,box-shadow] duration-150 ease-out-soft hover:scale-105 active:scale-[0.97] ${
+            className={`me-avatar-preset relative size-10 rounded-full overflow-hidden border-2 transition-[transform,opacity,border-color,box-shadow] duration-150 ease-out-soft hover:scale-105 active:scale-[0.97] ${
               currentAvatar === url ? "border-primary ring-2 ring-primary/40 scale-105" : "border-transparent opacity-80"
             }`}
           >

@@ -166,7 +166,10 @@ export const MoodTrackerSection: React.FC<{
               <div className="flex justify-between text-xs mb-2">
                 <span className="font-semibold text-foreground/80">{t("mood.energy")}</span>
                 <span className="font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
-                  {energyLevel} / 5
+                  <span key={energyLevel} className="inline-block animate-pop-in">
+                    {energyLevel}
+                  </span>
+                  {" / 5"}
                 </span>
               </div>
               <input
@@ -188,7 +191,10 @@ export const MoodTrackerSection: React.FC<{
               <div className="flex justify-between text-xs mb-2">
                 <span className="font-semibold text-foreground/80">{t("mood.valence")}</span>
                 <span className="font-semibold text-teal-600 dark:text-teal-400 bg-teal-500/10 px-2.5 py-0.5 rounded-full border border-teal-500/20">
-                  {valenceLevel} / 5
+                  <span key={valenceLevel} className="inline-block animate-pop-in">
+                    {valenceLevel}
+                  </span>
+                  {" / 5"}
                 </span>
               </div>
               <input
@@ -233,16 +239,16 @@ export const MoodTrackerSection: React.FC<{
                     : `I just logged my mood check-in. I'm feeling ${selectedMood}, with energy level ${energyLevel}/5 and valence ${valenceLevel}/5. Notes: ${moodNote || "I'd like to reflect with you on how to navigate this."}`
                 )
               }
-              className="rounded-xl text-xs gap-1.5 border-emerald-500/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/10 cursor-pointer"
+              className="group rounded-xl text-xs gap-1.5 border-emerald-500/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/10 cursor-pointer"
             >
-              <Sparkles className="size-3.5 text-emerald-500" />
+              <Sparkles className="size-3.5 text-emerald-500 transition-transform duration-300 group-hover:rotate-12" />
               <span>{t("mood.reflectBtn")}</span>
             </Button>
 
             <Button
               size="sm"
               onClick={handleSaveCheckIn}
-              className="rounded-xl text-xs px-6 py-2 h-9.5 gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-medium shadow-sm cursor-pointer"
+              className="group rounded-xl text-xs px-6 py-2 h-9.5 gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-medium shadow-sm cursor-pointer"
             >
               {savedSuccess ? (
                 <>
@@ -252,7 +258,7 @@ export const MoodTrackerSection: React.FC<{
               ) : (
                 <>
                   <span>{t("mood.saveBtn")}</span>
-                  <ArrowRight className="size-3.5 opacity-80" />
+                  <ArrowRight className="size-3.5 opacity-80 transition-transform duration-200 group-hover:translate-x-0.5" />
                 </>
               )}
             </Button>

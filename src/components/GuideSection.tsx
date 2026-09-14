@@ -135,7 +135,7 @@ export const GuideSection: React.FC<{
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Card 1: CBT Thought Studio (即时思维解构) */}
-              <Card className="guide-home-card rounded-3xl p-6 border border-emerald-500/20 bg-card/50 dark:bg-card/40 shadow-lg shadow-emerald-500/[0.03] backdrop-blur-xl backdrop-saturate-150 flex flex-col justify-between">
+              <Card className="guide-home-card rounded-3xl p-6 border border-emerald-500/20 bg-card/50 dark:bg-card/40 shadow-lg shadow-emerald-500/[0.03] backdrop-blur-xl backdrop-saturate-150 flex flex-col justify-between transition-[transform,box-shadow,border-color] duration-300 ease-out-soft hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-500/10 hover:border-emerald-500/35">
                 <div>
                   <div className="flex items-center gap-3 mb-3">
                     <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-purple-500/10 border border-purple-500/25 text-purple-600 dark:text-purple-400">
@@ -236,7 +236,7 @@ export const GuideSection: React.FC<{
                   </p>
 
                   <div className="mt-4 p-3.5 rounded-2xl bg-teal-500/10 border border-teal-500/20 text-xs text-teal-800 dark:text-teal-200 leading-relaxed">
-                    💡 {isZh ? "当感到焦虑、过载或情绪紧绷时，5-4-3-2-1 练习通过调动五大感官，能在 30 秒内有效中断大脑的焦虑反刍回路。" : "When feeling overwhelmed or tense, the 5-4-3-2-1 practice interrupts mental rumination by grounding attention directly in sensory reality."}
+                    💡 {isZh ? "当感到焦虑、过载或情绪紧绷时，5-4-3-2-1 练习通过调动五大感官，帮助你把注意力温和地带回当下，松开反刍的循环。" : "When feeling overwhelmed or tense, the 5-4-3-2-1 practice gently returns your attention to the present by grounding it in sensory reality."}
                   </div>
                 </div>
 
@@ -271,7 +271,7 @@ export const GuideSection: React.FC<{
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Card 3: Cognitive Assessment */}
-              <Card className="guide-home-card rounded-3xl p-6 border border-emerald-500/20 bg-card/50 dark:bg-card/40 shadow-lg shadow-emerald-500/[0.03] backdrop-blur-xl backdrop-saturate-150 flex flex-col justify-between">
+              <Card className="guide-home-card rounded-3xl p-6 border border-emerald-500/20 bg-card/50 dark:bg-card/40 shadow-lg shadow-emerald-500/[0.03] backdrop-blur-xl backdrop-saturate-150 flex flex-col justify-between transition-[transform,box-shadow,border-color] duration-300 ease-out-soft hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-500/10 hover:border-emerald-500/35">
                 <div>
                   <div className="flex items-center gap-3 mb-3">
                     <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 dark:text-emerald-400">

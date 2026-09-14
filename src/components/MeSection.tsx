@@ -49,6 +49,7 @@ function CounselorEditor({
   onNameChange,
   onAvatarChange,
 }: CounselorEditorProps) {
+  const { t } = useLanguage();
   return (
     <div className="p-4 rounded-2xl bg-muted/40 border border-border/60 space-y-3">
       <div className="flex items-center justify-between">
@@ -60,25 +61,25 @@ function CounselorEditor({
           <div>
             <span className="font-semibold text-foreground block">{title}</span>
             <span className="text-[11px] text-muted-foreground font-lato-light-italic">
-              Default Voice: {defaultVoice}
+              {t("me.defaultVoice")}: {defaultVoice}
             </span>
           </div>
         </div>
       </div>
 
       <div>
-        <label className="font-medium text-muted-foreground block mb-1">Counselor Name:</label>
+        <label className="font-medium text-muted-foreground block mb-1">{t("me.counselorNameLabel")}</label>
         <input
           type="text"
           value={name}
           onChange={(event) => onNameChange(event.target.value)}
-          placeholder="Counselor Name"
+          placeholder={t("me.counselorNamePlaceholder")}
           className="w-full rounded-xl border border-input bg-background px-3 py-1.5 text-xs font-light"
         />
       </div>
 
       <AvatarUploader
-        label="Select or Upload Avatar"
+        label={t("me.selectAvatar")}
         currentAvatar={avatar}
         onAvatarChange={onAvatarChange}
         presetAvatars={presetAvatars}
@@ -124,8 +125,12 @@ export const MeSection: React.FC = () => {
             duration: 0.65,
           },
           "-=0.3"
-        )
-        .from(
+        );
+
+      // Only animate preset avatars if they exist in the DOM
+      const presets = containerRef.current?.querySelectorAll(".me-avatar-preset");
+      if (presets && presets.length > 0) {
+        tl.from(
           ".me-avatar-preset",
           {
             scale: 0.85,
@@ -136,6 +141,7 @@ export const MeSection: React.FC = () => {
           },
           "-=0.2"
         );
+      }
     },
     { scope: containerRef }
   );
@@ -200,8 +206,8 @@ export const MeSection: React.FC = () => {
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <CardTitle className="text-base font-bold">Your Client Profile</CardTitle>
-                  <p className="text-xs text-muted-foreground">How you appear in mindful chat</p>
+                  <CardTitle className="text-base font-bold">{t("me.profileTitle")}</CardTitle>
+                  <p className="text-xs text-muted-foreground">{t("me.profileSub")}</p>
                 </div>
               </div>
               <Avatar className="size-11 ring-2 ring-primary/40 shadow-sm">
@@ -214,20 +220,20 @@ export const MeSection: React.FC = () => {
               {/* User Name */}
               <div>
                 <label className="font-semibold text-foreground/80 block mb-1.5">
-                  Your Display Name:
+                  {t("me.displayName")}
                 </label>
                 <input
                   type="text"
                   value={config.userName}
                   onChange={(e) => updateProfile({ ...config, userName: e.target.value })}
-                  placeholder="e.g. Alex, Maya, You..."
+                  placeholder={t("me.displayNamePlaceholder")}
                   className="w-full rounded-xl border border-input bg-background px-3.5 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary font-light"
                 />
               </div>
 
               {/* User Avatar with Upload + Presets */}
               <AvatarUploader
-                label="Choose or Upload Your Avatar"
+                label={t("me.yourAvatar")}
                 currentAvatar={config.userAvatar}
                 onAvatarChange={(newAvatar) => updateProfile({ ...config, userAvatar: newAvatar })}
                 presetAvatars={PRESET_USER_AVATARS}
@@ -243,8 +249,8 @@ export const MeSection: React.FC = () => {
                   <Bot className="size-5" />
                 </div>
                 <div>
-                  <CardTitle className="text-base font-bold">Counselor Identity Studio</CardTitle>
-                  <p className="text-xs text-muted-foreground">Customize names and upload custom avatars</p>
+                  <CardTitle className="text-base font-bold">{t("me.counselorTitle")}</CardTitle>
+                  <p className="text-xs text-muted-foreground">{t("me.counselorSub")}</p>
                 </div>
               </div>
             </CardHeader>
@@ -302,8 +308,8 @@ export const MeSection: React.FC = () => {
                   <MessageSquareShare className="size-5" />
                 </div>
                 <div>
-                  <CardTitle className="text-base font-bold">External Dialogue Psychological Audit</CardTitle>
-                  <p className="text-xs text-muted-foreground">Paste transcripts from other AI agents or conversations</p>
+                  <CardTitle className="text-base font-bold">{t("me.auditTitle")}</CardTitle>
+                  <p className="text-xs text-muted-foreground">{t("me.auditSub")}</p>
                 </div>
               </div>
             </CardHeader>

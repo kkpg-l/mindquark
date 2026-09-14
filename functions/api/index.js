@@ -4,9 +4,23 @@ const serverless = require("serverless-http");
 const https = require("node:https");
 const crypto = require("node:crypto");
 const WebSocket = require("ws");
+
+// Make direct local CLI/IDE startup behave like `npm start`. The deployed
+// serverless import path never reads a file, and supplied env is not overwritten.
+if (require.main === module && typeof process.loadEnvFile === "function") {
+  try {
+    process.loadEnvFile(`${__dirname}/.env`);
+  } catch (error) {
+    if (error?.code !== "ENOENT") {
+      console.warn("Could not load the local API .env file.", error.message);
+    }
+  }
+}
 const { assessSafety, buildCrisisResponse } = require("./safety");
 const { extractJsonObject, sanitizeSemanticScores, sanitizeReframeResult } = require("./guideUtils");
 const {
+  CALL_CREATE_TIMEOUT_MS,
+  CALL_STATUS_TIMEOUT_MS,
   CALL_RESULT_SCHEMA,
   buildCallTask,
   buildStableIdempotencyKey,
@@ -14,7 +28,9 @@ const {
   isTerminalCallStatus,
   isValidCallId,
   isValidCallPhone,
+  mapCalleCreateError,
   normalizeCallPhone,
+  resolveCallRouting,
 } = require("./calle");
 
 const app = express();
@@ -27,7 +43,8 @@ const DEFAULT_ALLOWED_ORIGINS = [
   "https://kkpg-d2ga363tca9086e3e-1469579803.tcloudbaseapp.com",
   "https://kkpg-d2ga363tca9086e3e-1469579803.ap-shanghai.app.tcloudbase.com",
 ];
-// Allow dynamic origin detection when CORS_ORIGINS is not configured
+// Keep the fallback list deliberately small. Production deployments should set
+// CORS_ORIGINS explicitly; do not dynamically trust arbitrary hosted subdomains.
 const allowedOrigins = new Set(
   (process.env.CORS_ORIGINS || DEFAULT_ALLOWED_ORIGINS.join(","))
     .split(",")
@@ -37,24 +54,7 @@ const allowedOrigins = new Set(
 
 function isOriginAllowed(origin) {
   if (!origin) return true;
-  if (allowedOrigins.has(origin)) return true;
-  try {
-    const url = new URL(origin);
-    const host = url.hostname;
-    // Allow CloudBase production/preview hosting and Cloudflare Pages domains
-    if (
-      host.endsWith(".tcloudbaseapp.com") ||
-      host.endsWith(".tcloudbase.com") ||
-      host.endsWith(".pages.dev")
-    ) {
-      return true;
-    }
-    // Allow local development hostnames
-    if (host === "localhost" || host === "127.0.0.1") {
-      return true;
-    }
-  } catch {}
-  return false;
+  return allowedOrigins.has(origin);
 }
 
 const RATE_LIMIT_WINDOW_MS = getPositiveInteger(process.env.RATE_LIMIT_WINDOW_MS, 60_000);
@@ -154,18 +154,21 @@ function antiBotMiddleware(req, res, next) {
 
 app.use(antiBotMiddleware);
 
-function verifyTencentCaptcha({ ticket, randstr, userIp }) {
+function verifyTencentCaptcha({ ticket, randstr, userIp, required = false }) {
   const appId = process.env.TCAPTCHA_APP_ID?.trim() || process.env.CAPTCHA_APP_ID?.trim();
   const secretKey = process.env.TCAPTCHA_SECRET_KEY?.trim() || process.env.CAPTCHA_SECRET_KEY?.trim();
 
-  // If captcha is not configured in env or placeholder is present, allow request (graceful degradation)
+  // Non-billing endpoints can degrade locally when Captcha is not configured.
+  // Billing-bearing actions (currently CALL-E) must fail closed instead.
   if (
     !appId ||
     !secretKey ||
     appId.startsWith("__SET_IN_") ||
     secretKey.startsWith("__SET_IN_")
   ) {
-    return Promise.resolve({ ok: true, skipped: true });
+    return Promise.resolve(required
+      ? { ok: false, error: "Tencent Cloud Captcha is required for this action." }
+      : { ok: true, skipped: true });
   }
 
   if (!ticket || !randstr) {
@@ -216,14 +219,17 @@ function verifyTencentCaptcha({ ticket, randstr, userIp }) {
       }
     );
 
+    const handleNetworkFailure = () => {
+      resolve(required ? { ok: false, error: "Captcha verification is temporarily unavailable." } : { ok: true, degraded: true });
+    };
+
     req.on("error", (err) => {
       console.warn("Captcha verification network warning:", err.message);
-      // Soft-degrade if upstream captcha network times out
-      resolve({ ok: true, degraded: true });
+      handleNetworkFailure();
     });
     req.on("timeout", () => {
       req.destroy();
-      resolve({ ok: true, degraded: true });
+      handleNetworkFailure();
     });
 
     req.write(postData);
@@ -337,7 +343,16 @@ function cleanModelReply(raw) {
   return cleaned;
 }
 
-function requestChatCompletion({ hostname, path, authorization, model, messages, maxTokens, temperature = 0.7 }) {
+function requestChatCompletion({
+  hostname,
+  path,
+  authorization,
+  model,
+  messages,
+  maxTokens,
+  temperature = 0.7,
+  timeoutMs = 11_000,
+}) {
   const postData = JSON.stringify({
     model,
     messages,
@@ -357,7 +372,7 @@ function requestChatCompletion({ hostname, path, authorization, model, messages,
           Authorization: authorization,
           "Content-Length": Buffer.byteLength(postData),
         },
-        timeout: 11_000,
+        timeout: timeoutMs,
       },
       (response) => {
         let body = "";
@@ -380,7 +395,7 @@ function requestChatCompletion({ hostname, path, authorization, model, messages,
 
     req.on("error", reject);
     req.on("timeout", () => {
-      req.destroy(new Error("Model request timeout"));
+      req.destroy(new Error(`Model request timed out after ${timeoutMs}ms`));
     });
     req.write(postData);
     req.end();
@@ -388,18 +403,60 @@ function requestChatCompletion({ hostname, path, authorization, model, messages,
 }
 
 const FALLBACK_MODELS = [
-  "minimax/minimax-m2.7:free",
-  "z-ai/glm-5.2:free",
   "google/gemma-4-26b-a4b-it:free",
+  "minimax/minimax-m2.7:free",
 ];
 
-async function callPrimaryModel(messages, maxTokens = 600, temperature) {
-  const configuredModel = process.env.PRIMARY_MODEL?.trim() || "minimax/minimax-m2.7:free";
-  const apiKey = requireConfigured("OPENROUTER_API_KEY");
-  const modelsToTry = [configuredModel, ...FALLBACK_MODELS.filter((m) => m !== configuredModel)];
+function getModelRequestTimeout(requestOptions) {
+  const configuredTimeout = requestOptions.timeoutMs || 11_000;
+  if (!requestOptions.deadlineAt) return configuredTimeout;
+  const remainingMs = requestOptions.deadlineAt - Date.now();
+  if (remainingMs <= 0) {
+    throw new Error(`Model failover deadline exceeded after ${requestOptions.deadlineMs}ms`);
+  }
+  return Math.max(1, Math.min(configuredTimeout, remainingMs));
+}
 
+async function callPrimaryModel(messages, maxTokens = 600, temperature, requestOptions = {}) {
+  const baseUrl = process.env.PRIMARY_BASE_URL?.trim() || "https://note3-prev-api.askdiandian.com/v1";
+  const url = new URL(baseUrl);
+  const basePath = url.pathname.replace(/\/+$/, "");
+  const apiKey = requireConfigured("PRIMARY_API_KEY").replace(/^Bearer\s+/i, "");
+  const model = process.env.PRIMARY_MODEL?.trim() || "dots3-note-prev";
+
+  // Reasoning 模型(如 dots3)偶尔会因思考链吃满 max_tokens 而 content 为空,
+  // 此时用更大的 maxTokens 重试一次, 避免把正常请求误判为失败。
   let lastError;
-  for (const model of modelsToTry) {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      return await requestChatCompletion({
+        hostname: url.hostname,
+        path: `${basePath}/chat/completions`,
+        authorization: `Bearer ${apiKey}`,
+        model,
+        messages,
+        maxTokens: attempt === 0 ? maxTokens : Math.max(maxTokens, 1500),
+        temperature,
+        timeoutMs: getModelRequestTimeout(requestOptions),
+      });
+    } catch (err) {
+      const emptyContent = /content.*null|finish_reason.*length/i.test(String(err.message));
+      lastError = err;
+      if (!emptyContent) throw err;
+      if (attempt === 1) {
+        console.warn(`Primary model ${model} attempt ${attempt + 1} failed:`, err.message);
+      } else {
+        console.warn(`Primary model ${model} returned empty content, retrying with larger maxTokens...`);
+      }
+    }
+  }
+  throw lastError || new Error("All primary model attempts failed");
+}
+
+async function callBackupModel(messages, maxTokens = 600, temperature, requestOptions = {}) {
+  const apiKey = requireConfigured("OPENROUTER_API_KEY");
+  let lastError;
+  for (const model of FALLBACK_MODELS) {
     try {
       return await requestChatCompletion({
         hostname: "openrouter.ai",
@@ -409,34 +466,27 @@ async function callPrimaryModel(messages, maxTokens = 600, temperature) {
         messages,
         maxTokens,
         temperature,
+        timeoutMs: getModelRequestTimeout(requestOptions),
       });
     } catch (err) {
       lastError = err;
-      console.warn(`Model ${model} failed, trying next candidate:`, err.message);
+      console.warn(`Backup model ${model} failed, trying next candidate:`, err.message);
     }
   }
-  throw lastError || new Error("All primary models failed");
+  throw lastError || new Error("All backup models failed");
 }
 
-function callBackupModel(messages, maxTokens = 600, temperature) {
-  return requestChatCompletion({
-    hostname: "maas-coding-api.cn-huabei-1.xf-yun.com",
-    path: "/v2/chat/completions",
-    authorization: requireConfigured("BACKUP_API_KEY"),
-    model: process.env.BACKUP_MODEL?.trim() || "astron-code-latest",
-    messages,
-    maxTokens,
-    temperature,
-  });
-}
+async function callLlmWithFailover(messages, maxTokens = 600, temperature, requestOptions = {}) {
+  const boundedOptions = requestOptions.deadlineMs
+    ? { ...requestOptions, deadlineAt: Date.now() + requestOptions.deadlineMs }
+    : requestOptions;
 
-async function callLlmWithFailover(messages, maxTokens = 600, temperature) {
   try {
-    return await callPrimaryModel(messages, maxTokens, temperature);
+    return await callPrimaryModel(messages, maxTokens, temperature, boundedOptions);
   } catch (primaryError) {
     console.warn("Primary model failed; trying the configured backup model.", primaryError.message);
     try {
-      return await callBackupModel(messages, maxTokens, temperature);
+      return await callBackupModel(messages, maxTokens, temperature, boundedOptions);
     } catch (backupError) {
       console.error("All configured model providers failed.", backupError.message);
       throw backupError;
@@ -720,7 +770,6 @@ router.post("/guide/assess", rateLimit, async (req, res) => {
   const combined = [...messages, quizContext].join("\n");
   const crisisResponse = getCrisisResponse(combined);
   if (crisisResponse) return res.json(crisisResponse);
-
   const captchaTicket = req.body?.captchaTicket || req.headers["x-captcha-ticket"];
   const captchaRandstr = req.body?.captchaRandstr || req.headers["x-captcha-randstr"];
   const captchaResult = await verifyTencentCaptcha({
@@ -732,88 +781,64 @@ router.post("/guide/assess", rateLimit, async (req, res) => {
     return res.status(403).json({ error: captchaResult.error || "Captcha verification failed." });
   }
 
-  // ① Semantic scoring — any failure degrades to null (frontend falls back to deterministic mode).
+  // One bounded model pass supplies scoring and optional report copy. Any failure
+  // degrades to the frontend's deterministic assessment without a second serial chain.
   let semanticScores = null;
   let evidence = [];
-  if (messages.length > 0) {
-    try {
-      const raw = await callLlmWithFailover(
-        [
-          {
-            role: "system",
-            content:
-              "You are a careful psychological text analyst. You never diagnose. Return ONLY valid JSON with no markdown fences.",
-          },
-          {
-            role: "user",
-            content: `Analyze these journal/chat excerpts from one person. Rate how strongly each thinking pattern appears, from 0.0 (absent) to 1.0 (very strong):
+  let narrative = null;
+  let recommendations = [];
+  try {
+    const excerpts = messages.length > 0
+      ? `Analyze these journal/chat excerpts from one person. Rate how strongly each thinking pattern appears, from 0.0 (absent) to 1.0 (very strong):
 - perfectionism: rigid all-or-nothing standards, fear of mistakes
 - avoidance: evading tasks, people, or feelings
 - rumination: repetitive, stuck thinking loops
 - catastrophizing: expecting worst-case outcomes
 - selfCriticism: harsh self-judgment and self-blame
-
-Return ONLY this JSON shape:
-{"patterns": {"perfectionism": 0.0, "avoidance": 0.0, "rumination": 0.0, "catastrophizing": 0.0, "selfCriticism": 0.0}, "evidence": ["short quote", "short quote"]}
-evidence: up to 3 short quotes (max 20 words each) supporting the two highest scores.
-
 Text:
 """
 ${messages.join("\n---\n")}
-"""`,
-          },
-        ],
-        300,
-        0.2
-      );
-      const sanitized = sanitizeSemanticScores(extractJsonObject(raw));
-      if (sanitized) {
-        semanticScores = sanitized.scores;
-        evidence = sanitized.evidence;
-      }
-    } catch (error) {
-      console.warn("Guide semantic scoring failed; falling back to deterministic mode.", error.message);
-    }
-  }
-
-  // ② Narrative generation — the LLM never participates in scoring.
-  let narrative = null;
-  let recommendations = [];
-  try {
-    const scoreLine = semanticScores
-      ? `Pattern scores (0-1): perfectionism ${semanticScores.perfectionism}, avoidance ${semanticScores.avoidance}, rumination ${semanticScores.rumination}, catastrophizing ${semanticScores.catastrophizing}, selfCriticism ${semanticScores.selfCriticism}.`
-      : "Pattern scores unavailable; rely on the quiz context.";
+"""`
+      : "There are no journal excerpts; do not invent pattern scores or evidence.";
     const raw = await callLlmWithFailover(
       [
         {
           role: "system",
           content:
-            "You are a warm, gentle wellbeing guide. Non-diagnostic, non-clinical, strengths-acknowledging. Return ONLY valid JSON with no markdown fences.",
+            "You are a careful, warm psychological text analyst. Never diagnose or apply clinical labels. Return ONLY valid JSON with no markdown fences.",
         },
         {
           role: "user",
-          content: `${scoreLine}
-${quizContext ? `Quiz context: ${quizContext}\n` : ""}Write:
-1. "narrative": 2-3 sentences in second person, warm and non-judgmental, describing these as tendencies (never diagnoses or labels), acknowledging one strength.
-2. "recommendations": exactly 3 short actionable suggestions (max 15 words each) matched to the strongest patterns.
+          content: `${excerpts}
+${quizContext ? `Quiz context: ${quizContext}` : ""}
 
-Return ONLY this JSON shape: {"narrative": "...", "recommendations": ["...", "...", "..."]}`,
+Write a 2-3 sentence second-person narrative describing tendencies warmly and non-judgmentally, acknowledging one strength. Give exactly 3 short actionable recommendations (max 15 words each).
+Return ONLY this JSON shape:
+{"patterns": {"perfectionism": 0.0, "avoidance": 0.0, "rumination": 0.0, "catastrophizing": 0.0, "selfCriticism": 0.0}, "evidence": ["short quote", "short quote"], "narrative": "...", "recommendations": ["...", "...", "..."]}
+Evidence: up to 3 short quotes (max 20 words each) supporting the two highest scores.`,
         },
       ],
-      400
+      600,
+      0.2,
+      { deadlineMs: 10_000, timeoutMs: 5_000 }
     );
     const parsed = extractJsonObject(raw);
+    const sanitized = messages.length > 0 ? sanitizeSemanticScores(parsed) : null;
+    if (sanitized) {
+      semanticScores = sanitized.scores;
+      evidence = sanitized.evidence;
+    }
     if (parsed && typeof parsed.narrative === "string" && parsed.narrative.trim()) {
       narrative = parsed.narrative.trim().slice(0, 600);
     }
     if (Array.isArray(parsed?.recommendations)) {
       recommendations = parsed.recommendations
-        .filter((r) => typeof r === "string" && r.trim())
-        .map((r) => r.trim().slice(0, 140))
+        .filter((item) => typeof item === "string" && item.trim())
+        .map((item) => item.trim().slice(0, 140))
         .slice(0, 3);
     }
   } catch (error) {
-    console.warn("Guide narrative generation failed; report will use local copy.", error.message);
+    console.warn("Guide assessment generation failed; using deterministic mode.", error.message);
   }
 
   res.json({ ok: true, semanticScores, evidence, narrative, recommendations });
@@ -967,6 +992,17 @@ router.post("/call/create", rateLimit, async (req, res) => {
     return res.status(400).json({ error: "A valid E.164 phone number (for example +12125550123) is required." });
   }
 
+  // Fail fast for destinations CALL-E does not serve (e.g. Mainland China +86),
+  // instead of waiting ~19s for the upstream task-readiness review to reject it.
+  const routing = resolveCallRouting(phone);
+  if (!routing.supported) {
+    return res.status(400).json({
+      error:
+        "Voice calls to this country/region are not supported yet. Please use a supported destination (for example US +1, Singapore +65, Malaysia +60, UK +44).",
+      code: "unsupported_region",
+    });
+  }
+
   // Tencent Cloud Captcha (防水墙) verification
   const captchaTicket = req.body?.captchaTicket || req.headers["x-captcha-ticket"];
   const captchaRandstr = req.body?.captchaRandstr || req.headers["x-captcha-randstr"];
@@ -974,6 +1010,7 @@ router.post("/call/create", rateLimit, async (req, res) => {
     ticket: captchaTicket,
     randstr: captchaRandstr,
     userIp: getClientKey(req),
+    required: true,
   });
   if (!captchaResult.ok) {
     return res.status(403).json({ error: captchaResult.error || "Captcha verification failed." });
@@ -1007,25 +1044,36 @@ router.post("/call/create", rateLimit, async (req, res) => {
       path: "/v1/calls",
       apiKey,
       idempotencyKey,
+      timeoutMs: CALL_CREATE_TIMEOUT_MS,
       body: {
         task: buildCallTask(phone),
-        recipients: [{ phones: [phone], region: "US", locale: "en-US" }],
+        recipients: [{ phones: [phone], region: routing.region, locale: routing.locale }],
         result_schema: CALL_RESULT_SCHEMA,
         metadata: { source: "mindquark-voice-checkin", requested_date: today },
       },
     });
 
     if (status < 200 || status >= 300 || !data?.id) {
-      console.error("CALL-E call creation failed.", status, data?.error?.message || data?.message || "");
-      return res.status(502).json({ error: "The voice check-in call could not be scheduled. Please try again later." });
+      const mapped = mapCalleCreateError(status, data);
+      console.error("CALL-E call creation failed.", status, data?.error?.code || "", data?.error?.message || data?.message || "");
+      return res.status(mapped.httpStatus).json({ error: mapped.error, code: mapped.code });
     }
 
     callDayBuckets.set(dayKey, usedToday + 1);
     activeCalls.set(data.id, { clientKey, createdAt: Date.now() });
 
-    return res.json({ ok: true, callId: data.id, status: data.status || "queued" });
+    return res.status(201).json({ ok: true, callId: data.id, status: data.status || "queued" });
   } catch (error) {
-    console.error("CALL-E call creation error.", error.message);
+    console.error("CALL-E call creation error.", error.code || "", error.message);
+    if (error?.code === "CALLE_TIMEOUT") {
+      // The provider may still have accepted and started the call, so tell the
+      // user not to spam retries (the account only allows one active call anyway).
+      return res.status(504).json({
+        error:
+          "The request took too long to confirm. Your call may already be getting placed — please wait a moment instead of submitting again.",
+        code: "upstream_timeout",
+      });
+    }
     return res.status(502).json({ error: "The voice check-in call could not be scheduled. Please try again later." });
   }
 });
@@ -1046,6 +1094,7 @@ router.get("/call/status/:callId", rateLimit, async (req, res) => {
       method: "GET",
       path: `/v1/calls/${encodeURIComponent(callId)}`,
       apiKey,
+      timeoutMs: CALL_STATUS_TIMEOUT_MS,
     });
 
     if (status === 404) {
@@ -1092,6 +1141,9 @@ app.use((error, req, res, next) => {
   }
   if (error?.type === "entity.too.large") {
     return res.status(413).json({ error: "Request body is too large." });
+  }
+  if (error?.type === "entity.parse.failed") {
+    return res.status(400).json({ error: "Request body must be valid JSON." });
   }
   console.error("Unhandled API error.", error);
   return res.status(500).json({ error: "Internal server error." });

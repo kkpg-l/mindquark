@@ -11,9 +11,9 @@
       "envVariables": {
         "CORS_ORIGINS": "https://kkpg-d2ga363tca9086e3e-1469579803.tcloudbaseapp.com,https://kkpg-d2ga363tca9086e3e-1469579803.ap-shanghai.app.tcloudbase.com,http://localhost:5173,http://127.0.0.1:5173",
         "OPENROUTER_API_KEY": "__SET_IN_CLOUDBASE_CONSOLE__",
-        "PRIMARY_MODEL": "minimax/minimax-m2.7:free",
-        "BACKUP_API_KEY": "__SET_IN_CLOUDBASE_CONSOLE__",
-        "BACKUP_MODEL": "astron-code-latest",
+        "PRIMARY_API_KEY": "__SET_IN_CLOUDBASE_CONSOLE__",
+        "PRIMARY_BASE_URL": "https://note3-prev-api.askdiandian.com/v1",
+        "PRIMARY_MODEL": "dots3-note-prev",
         "XF_APPID": "__SET_IN_CLOUDBASE_CONSOLE__",
         "XF_API_SECRET": "__SET_IN_CLOUDBASE_CONSOLE__",
         "XF_API_KEY": "__SET_IN_CLOUDBASE_CONSOLE__",

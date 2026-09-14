@@ -113,11 +113,11 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           <Button
             size="lg"
             onClick={() => onStartChat()}
-            className="rounded-full px-8 gap-2 text-base font-normal bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/25 hover:scale-105 transition-all cursor-pointer"
+            className="btn-shine group rounded-full px-8 gap-2 text-base font-normal bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/25 hover:scale-105 transition-all cursor-pointer"
           >
             <MessageCircleHeart className="size-5" />
             <span>{t("hero.startChat")}</span>
-            <ArrowRight className="size-4" />
+            <ArrowRight className="size-4 transition-transform duration-200 group-hover:translate-x-0.5" />
           </Button>
 
           <Button

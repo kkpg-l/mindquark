@@ -116,4 +116,20 @@ describe("guide api safety wiring", () => {
     expect((apiSource.match(/getCrisisResponse\(/g) || []).length).toBeGreaterThanOrEqual(6);
     expect((apiSource.match(/verifyTencentCaptcha\(/g) || []).length).toBeGreaterThanOrEqual(6);
   });
+
+  it("keeps guide assessment to one bounded LLM pass", () => {
+    const assessRoute = apiSource.slice(
+      apiSource.indexOf('router.post("/guide/assess"'),
+      apiSource.indexOf('router.post("/guide/reframe"')
+    );
+
+    expect((assessRoute.match(/callLlmWithFailover\(/g) || []).length).toBe(1);
+    expect(assessRoute).toContain("deadlineMs: 10_000");
+    expect(assessRoute).toContain("using deterministic mode");
+  });
+
+  it("loads the ignored API env file only for direct local startup", () => {
+    expect(apiSource).toContain('require.main === module && typeof process.loadEnvFile === "function"');
+    expect(apiSource).toContain('process.loadEnvFile(`${__dirname}/.env`)');
+  });
 });

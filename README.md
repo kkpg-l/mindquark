@@ -62,7 +62,7 @@ MindQuark integrates **CALL-E** to offer real-time outbound telephone check-in c
 
 1. **User Experience Flow**:
    - In the Chat interface, click the **"Call Me"** (Phone) icon in the top header.
-   - Enter an international phone number (E.164 format, e.g., `+1 212 555 0123` or `+86 138 0000 0000`).
+   - Enter an international phone number (E.164 format, e.g., `+1 212 555 0123`). Outbound calling is limited to CALL-E's supported destinations (US +1, Singapore +65, Malaysia +60, UK +44, etc.); **Mainland China +86 is not supported** and is rejected up front.
    - Check the explicit consent checkbox and confirm.
    - The UI displays live dialing progress while allowing the user to minimize the modal and continue text chat.
    - The AI companion (Maya) calls the user's phone for a warm 5–10 minute check-in with CBT validation and grounding exercises.
@@ -72,6 +72,7 @@ MindQuark integrates **CALL-E** to offer real-time outbound telephone check-in c
    - **Zero Phone Storage**: Phone numbers are strictly used in-flight to initiate the call and are never written to any database or persistent log.
    - **Crisis Call Protocol**: If self-harm or crisis is detected during the call, the AI immediately directs the user to 988 / local emergency services and ends the call safely.
    - **Anti-Abuse Limits**: Daily per-IP quotas (`CALL_MAX_PER_DAY_PER_IP=3`) and concurrency caps (`CALL_MAX_ACTIVE=1`) prevent abusive or accidental dialing.
+   - **Provider Timing**: CALL-E runs a server-side task-readiness review, so `POST /v1/calls` typically takes ~15–20s to return. The proxy uses a 45s create timeout (`CALL_CREATE_TIMEOUT_MS`) and the client a 50s fetch timeout; a shorter timeout reports a false failure even though the call was accepted. Upstream error codes (unsupported region, balance, concurrency, ...) are mapped to explicit client-facing messages instead of a generic 502.
 
 ---
 
@@ -115,13 +116,13 @@ cp .env.example .env
 Configure your server environment variables in `functions/api/.env`:
 
 ```bash
-# Primary LLM Provider (OpenRouter / DeepSeek / GLM)
-OPENROUTER_API_KEY=your_openrouter_api_key_here
-PRIMARY_MODEL=minimax/minimax-m2.7:free
+# Primary LLM Provider (askdiandian dots3-note-prev)
+PRIMARY_API_KEY=your_askdiandian_api_key_here
+PRIMARY_BASE_URL=https://note3-prev-api.askdiandian.com/v1
+PRIMARY_MODEL=dots3-note-prev
 
-# Optional Backup LLM Provider (Failover resilience)
-BACKUP_API_KEY=your_backup_api_key_here
-BACKUP_MODEL=astron-code-latest
+# Fallback LLM Providers (OpenRouter free: gemma → minimax)
+OPENROUTER_API_KEY=your_openrouter_api_key_here
 
 # iFlytek Speech Recognition (IAT) & Text-to-Speech (TTS)
 XF_APPID=your_iflytek_appid_here
@@ -162,7 +163,7 @@ Run the full automated test and quality suite:
 
 ```bash
 npm run typecheck       # TypeScript 0 errors check
-npm test                # Vitest test suite (11 test files, 89/89 unit & component tests passing)
+npm test                # Vitest test suite (11 test files, 97/97 unit & component tests passing)
 npm run build           # Production bundle optimization
 node --check functions/api/index.js # Serverless syntax validation
 ```

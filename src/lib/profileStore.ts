@@ -83,7 +83,7 @@ export const PRESET_USER_AVATARS = [
 export const PRESET_FEMALE_COUNSELOR_AVATARS = [
   "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80",
   "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1534751516642-a171edd26cb7?w=150&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=150&auto=format&fit=crop&q=80",
 ];
 
 export const PRESET_MALE_COUNSELOR_AVATARS = [

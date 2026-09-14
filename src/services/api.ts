@@ -128,14 +128,37 @@ export interface VoiceCallStatusResponse {
 
 const E164_PHONE_PATTERN = /^\+[1-9]\d{6,14}$/;
 
+// International calling codes CALL-E currently supports (mirrors the backend;
+// the server remains the authoritative check). Mainland China +86 is absent.
+const SUPPORTED_CALLING_CODES = new Set([
+  "1", "65", "60", "91", "971", "61", "44", "84", "49", "81", "33", "52",
+  "55", "62", "63", "254", "31", "48", "880", "234", "968", "66", "264",
+  "237", "258", "966", "358", "380", "94", "267", "92", "90", "504", "34",
+  "886", "27", "20", "233", "972", "353", "216",
+]);
+
 export function normalizePhone(phone: string): string {
   if (typeof phone !== "string") return "";
-  return phone.replace(/[\s\-\(\)\.]/g, "").trim();
+  return phone.replace(/[\s\-().]/g, "").trim();
 }
 
 export function isValidE164Phone(phone: string): boolean {
   const cleaned = normalizePhone(phone);
   return E164_PHONE_PATTERN.test(cleaned);
+}
+
+// Longest-match extraction of the calling code (1-3 digits) from an E.164 number.
+export function getCallingCode(phone: string): string | null {
+  const digits = normalizePhone(phone).replace(/^\+/, "");
+  for (const len of [3, 2, 1]) {
+    const candidate = digits.slice(0, len);
+    if (SUPPORTED_CALLING_CODES.has(candidate)) return candidate;
+  }
+  return null;
+}
+
+export function isSupportedCallRegion(phone: string): boolean {
+  return getCallingCode(phone) !== null;
 }
 
 export async function createVoiceCall(
@@ -149,6 +172,13 @@ export async function createVoiceCall(
   if (!isValidE164Phone(normalized)) {
     return { ok: false, error: "Please enter a valid phone number in international format, for example +12125550123." };
   }
+  if (!isSupportedCallRegion(normalized)) {
+    return {
+      ok: false,
+      error:
+        "Voice calls are not supported for this country/region yet. Please use a supported destination such as US +1, Singapore +65, or Malaysia +60.",
+    };
+  }
 
   try {
     const captchaData = await getCaptchaVerification();
@@ -161,7 +191,9 @@ export async function createVoiceCall(
         captchaTicket: captchaData?.ticket,
         captchaRandstr: captchaData?.randstr,
       }),
-      signal: AbortSignal.timeout(20_000),
+      // The provider runs a server-side task review (~18s) before accepting;
+      // this must exceed the backend's 45s create timeout.
+      signal: AbortSignal.timeout(50_000),
     });
 
     const data = await response.json().catch(() => null);

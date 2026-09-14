@@ -101,9 +101,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {t("nav.brandSub", "Sanctuary")}
               </span>
             </span>
-            <span className="text-[10px] text-muted-foreground hidden sm:inline font-lato-light-italic">
-              {t("nav.tagline", "24/7 AI Mental Health & Coaching")}
-            </span>
           </div>
         </div>
 
@@ -130,7 +127,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 ref={isActive ? activeRef : null}
                 onClick={() => onTabChange(item.id)}
                 aria-current={isActive ? "page" : undefined}
-                className={`relative z-10 inline-flex cursor-pointer select-none items-center gap-1.5 rounded-full py-1.5 px-3 text-xs sm:text-sm transition-[color,transform,background-color] duration-150 ease-out-soft active:scale-[0.97] ${
+                className={`relative z-10 inline-flex cursor-pointer select-none items-center gap-1 sm:gap-1.5 rounded-full py-1.5 px-2 sm:px-3 text-xs sm:text-sm transition-[color,transform,background-color] duration-150 ease-out-soft active:scale-[0.97] ${
                   isActive
                     ? "text-white"
                     : "text-muted-foreground hover:text-foreground hover:bg-emerald-500/10"
@@ -152,7 +149,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     />
                   )
                 )}
-                <span>{item.label}</span>
+                <span className="hidden sm:inline">{item.label}</span>
               </button>
             );
           })}

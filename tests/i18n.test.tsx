@@ -54,9 +54,9 @@ describe("i18n and Chinese language switch button", () => {
     expect(markup).toContain("情绪记录");
     expect(markup).toContain("思绪梳理");
     expect(markup).toContain("个人中心");
-    // Brand subtitle & tagline
+    // Compact brand treatment keeps the translated subtitle and intentionally omits the old tagline.
     expect(markup).toContain("愈心空间");
-    expect(markup).toContain("24/7 AI 心理健康与愈疗向导");
+    expect(markup).not.toContain("24/7 AI 心理健康与愈疗向导");
   });
 
   it("renders English labels when language is en", () => {

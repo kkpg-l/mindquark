@@ -38,6 +38,7 @@ import {
   sendChatMessage,
   createVoiceCall,
   getVoiceCallStatus,
+  isSupportedCallRegion,
   type ChatHistoryMessage,
   type CounselorPersona,
   type VoiceCallStatusResponse,
@@ -568,6 +569,14 @@ Take all the time you need. We can gently explore what you're experiencing step-
     const cleanPhone = callPhone.trim();
     if (!cleanPhone) {
       setCallError(isZh ? "请输入用于接听通话的电话号码" : "Please enter a phone number to call.");
+      return;
+    }
+    if (!isSupportedCallRegion(cleanPhone)) {
+      setCallError(
+        isZh
+          ? "当前暂不支持向该国家/地区外呼（暂不支持中国大陆 +86）。请使用支持的号码，例如美国 +1、新加坡 +65、马来西亚 +60。"
+          : "Voice calls to this country/region are not supported yet (Mainland China +86 is unavailable). Use a supported number such as US +1, Singapore +65, or Malaysia +60."
+      );
       return;
     }
     setCallError(null);

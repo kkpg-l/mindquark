@@ -15,7 +15,6 @@ export const translations = {
   en: {
     nav: {
       brandSub: "Sanctuary",
-      tagline: "24/7 AI Mental Health & Coaching",
       explore: "Explore",
       chat: "Chat",
       breathe: "Breathe",
@@ -171,14 +170,37 @@ export const translations = {
       complete: "Complete",
     },
     me: {
-      title: "Profile Sanctuary & Dialogue Studio",
-      subtitle: "Personalize your sanctuary experience and counselor preferences",
-      userName: "Your Name",
-      counselorName: "Counselor Name",
+      badge: "Profile & Dialogue Audit",
+      title: "Personalization & Dialogue Audit",
+      subtitle: "Custom avatars, counselor personas, and an external dialogue audit.",
+      profileTitle: "Your Profile",
+      profileSub: "How you appear in mindful chat",
+      displayName: "Display Name:",
+      displayNamePlaceholder: "e.g. Alex, Maya…",
+      yourAvatar: "Choose or upload your avatar",
+      counselorTitle: "Counselor Persona",
+      counselorSub: "Customize your counselor's name and avatar",
       defaultVoice: "Default Voice",
+      counselorNameLabel: "Counselor Name:",
+      counselorNamePlaceholder: "Counselor name",
       selectAvatar: "Select or Upload Avatar",
-      saveProfile: "Save Sanctuary Preferences",
-      savedSuccess: "Sanctuary preferences saved successfully!",
+      femalePersona: "🌸 Female Counselor (warm & nurturing)",
+      malePersona: "🌿 Male Counselor (calm & grounded)",
+      saveAll: "Save All Settings",
+      savedAll: "Settings saved",
+      auditTitle: "External Dialogue Audit",
+      auditSub: "Paste a transcript from another AI or a real conversation",
+      transcriptLabel: "Transcript:",
+      loadSample: "Load Sample Dialogue",
+      auditBtn: "Start CBT Audit",
+      auditing: "Auditing…",
+      clearText: "Clear",
+      auditLoadingTitle: "MindQuark CBT engine auditing…",
+      auditLoadingDesc: "Assessing emotional vulnerabilities, communication blind spots, and reframing opportunities.",
+      reportTitle: "CBT Audit Report",
+      featureNote: "Evaluates whether the AI truly held the emotion, or slipped into hollow positivity.",
+      transcriptPlaceholder: "Paste any conversation transcript here, e.g.:\nUser: I made a tiny mistake and it feels like everything is falling apart.\nAI: You just need to follow a strict checklist.",
+      sampleDialogue: "User: I worked 14 hours today and still feel like I achieved nothing.\nAI: You should optimize your time management with the Pomodoro technique, make a to-do list, and stop procrastinating.",
     },
     voice: {
       modalTitle: "AI Counselor Phone Check-in",
@@ -189,7 +211,6 @@ export const translations = {
   zh: {
     nav: {
       brandSub: "愈心空间",
-      tagline: "24/7 AI 心理健康与愈疗向导",
       explore: "发现",
       chat: "愈疗对话",
       breathe: "呼吸减压",
@@ -387,30 +408,25 @@ export const translations = {
 
 const LanguageContext = createContext<I18nContextType | null>(null);
 
-function resolveTranslation(lang: Language, path: string, fallback?: string): string {
-  const keys = path.split(".");
-  let current: any = translations[lang];
+function getNestedValue(root: unknown, keys: string[]): unknown {
+  let current: any = root;
   for (const k of keys) {
     if (current && typeof current === "object" && k in current) {
       current = current[k];
     } else {
-      current = undefined;
-      break;
+      return undefined;
     }
   }
+  return current;
+}
 
+function resolveTranslation(lang: Language, path: string, fallback?: string): string {
+  const keys = path.split(".");
+  const current = getNestedValue(translations[lang], keys);
   if (typeof current === "string") return current;
 
-  // Fallback to English
   if (lang !== "en") {
-    let enCurrent: any = translations.en;
-    for (const k of keys) {
-      if (enCurrent && typeof enCurrent === "object" && k in enCurrent) {
-        enCurrent = enCurrent[k];
-      } else {
-        return fallback || path;
-      }
-    }
+    const enCurrent = getNestedValue(translations.en, keys);
     if (typeof enCurrent === "string") return enCurrent;
   }
 
