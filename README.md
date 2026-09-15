@@ -72,7 +72,7 @@ MindQuark integrates **CALL-E** to offer real-time outbound telephone check-in c
 
 2. **Safety & Privacy Safeguards**:
    - **Zero Phone Storage**: Phone numbers are strictly used in-flight to initiate the call and are never written to any database or persistent log.
-   - **Crisis Call Protocol**: If self-harm or crisis is detected during the call, the AI immediately directs the user to 988 / local emergency services and ends the call safely.
+   - **Crisis Call Protocol (best effort)**: The phone task prompt instructs the AI to direct a user reporting self-harm or crisis to local crisis/emergency services and end the call. This is prompt-based, advisory behavior on the voice model — not a deterministic crisis detector or a guaranteed intervention.
    - **Anti-Abuse Limits**: Daily per-IP quotas (`CALL_MAX_PER_DAY_PER_IP=3`) and concurrency caps (`CALL_MAX_ACTIVE=1`) prevent abusive or accidental dialing.
    - **Provider Timing**: CALL-E runs a server-side task-readiness review, so `POST /v1/calls` typically takes ~15–20s to return. The proxy uses a 45s create timeout (`CALL_CREATE_TIMEOUT_MS`) and the client a 50s fetch timeout; a shorter timeout reports a false failure even though the call was accepted. Upstream error codes (unsupported region, balance, concurrency, ...) are mapped to explicit client-facing messages instead of a generic 502.
 
@@ -82,7 +82,7 @@ MindQuark integrates **CALL-E** to offer real-time outbound telephone check-in c
 
 The repository contains **no provider credentials**. All secrets are configured strictly as CloudBase function environment variables or in a local untracked `.env` file.
 
-* **Dual-Layer Crisis Interceptor**: Pre-inference safety filters on both client and server intercept crisis keywords, bypassing LLM inference entirely to return verified crisis hotlines.
+* **Dual-Layer Crisis Interceptor (recognized text only)**: Pre-inference safety filters on both client and server intercept recognized high-risk text inputs, bypassing LLM inference entirely to return verified crisis hotlines. Spoken-call handling is separate and remains model/prompt-based (see Crisis Call Protocol above), so it can miss or misinterpret crisis content.
 * **Strict CORS Allowlist**: Origin validation blocks unauthorized cross-site requests (`CORS_ORIGINS`).
 * **Rate Limiting & Payload Bounds**: Protection against brute-force and oversized requests (`RATE_LIMIT_WINDOW_MS`, `RATE_LIMIT_MAX_REQUESTS`, 64KB JSON body limit).
 * **Anti-Bot Protection**: Integration with Tencent Cloud Captcha (`VITE_TCAPTCHA_APP_ID`) to verify genuine user interaction before expensive API operations.
