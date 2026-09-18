@@ -1,5 +1,11 @@
 # MindQuark Sanctuary 🌿
 
+[![Award: Hacksocial 2026 3rd Prize](https://img.shields.io/badge/Award-Hacksocial%202026%203rd%20Prize%20%F0%9F%A5%89-amber?style=flat-square)](https://github.com/kkpg-l/mindquark)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Tencent%20CloudBase-00a4ff?style=flat-square)](https://kkpg-d2ga363tca9086e3e-1469579803.tcloudbaseapp.com)
+[![Tests Passing](https://img.shields.io/badge/Tests-97%2F97%20Passed-brightgreen?style=flat-square)](./tests)
+[![License: MIT](https://img.shields.io/badge/License-MIT-emerald?style=flat-square)](./LICENSE)
+
+> 🥉 **Honors: Hacksocial 2026 Hackathon — 3rd Prize Winner (三等奖获奖作品)**  
 > **CBT-informed reflection, emotional resonance, and somatic grounding companion.**  
 > MindQuark is a full-stack mental wellbeing sanctuary designed for supportive reflection, cognitive reframing, somatic breathwork, and AI phone companion check-ins.  
 > 🔗 **Live Demo:** [https://kkpg-d2ga363tca9086e3e-1469579803.tcloudbaseapp.com](https://kkpg-d2ga363tca9086e3e-1469579803.tcloudbaseapp.com)
@@ -195,6 +201,13 @@ node --check functions/api/index.js && node --check functions/api/calle.js # Ser
 
 ---
 
+## 🏆 Honors & Awards
+
+- 🥉 **3rd Prize (三等奖)** — **Hacksocial 2026 Hackathon**
+
+---
+
 ## 📄 License
 
 MIT © 2026 MindQuark Team
+
